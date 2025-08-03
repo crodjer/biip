@@ -26,7 +26,7 @@ My IPs:
 - 192.168.42.42
 ```
 
-`biip` can redact all the sensitive information:
+`biip` can redact some sensitive information from it:
 ```
 $ cat /tmp/info.txt | biip
 Hi, I am "user"
@@ -63,16 +63,29 @@ Biip can scrub:
     - key
 
 ## How is it useful?
-It is useful when you are sharing a large amount of text, but cannot vet it
-thoroughly enough to look for sensitive information. For instance, when sharing
-text / logs etc with LLMs or sharing the whole code base with LLM for analysis,
-it may make sense to run it through `biip`. Like this:
+
+### LLM Context
+When sharing code with LLMs for AI assistance, running it through `biip` would
+be beneficial to strip out any sensitive info. Like this:
 
 ```bash
 git ls-files |
  grep -vE 'LICENSE|.gitignore|.lock|.png|.jpg|.svg' |
  xargs tail -n +1 | biip | pbcopy
 ```
+
 This will copy your entire codebase to clipboard, excluding certain files, and
-redact sensitive information. On Linux, use `xclip` (For X11) and `wl-copy` (For
-Wayland) instead of `pbcopy`.
+redact sensitive information. On Linux, use `xclip` (for X11) and `wl-copy` (for
+wayland) instead of `pbcopy`.
+
+### Copying .env
+`biip` considers `.env`, so it'll remember to not share any sensitive keys even
+if .env's content was in the stdin.
+So, `biip` would redact (keys, secrets etc) from the output:
+```sh
+$ cat .env | biip
+S3_KEY="**secret**"
+S3_SECRET="**secret**"
+ANTHROPIC_API_KEY="**secret**"
+OPENAI_API_KEY="**secret**"
+```

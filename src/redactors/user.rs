@@ -6,7 +6,7 @@ use std::env;
 pub fn username_redactor() -> Option<Redactor> {
     match env::var("USER") {
         Ok(user) => Some(Redactor::regex(
-            RegexBuilder::new(&format!(r"\b{}\b", user))
+            RegexBuilder::new(&format!(r"\b{}\b", regex::escape(&user)))
                 .case_insensitive(true)
                 .build()
                 .ok()?,

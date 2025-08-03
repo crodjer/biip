@@ -7,12 +7,13 @@ const ENV_SECRET_PATTERNS: &[&str] = &["password", "secret", "token", "key", "us
 
 pub fn secrets_redactor() -> Option<Redactor> {
     let env_vars: Vec<String> = env::vars()
-        .filter(|(key, _)| {
+        .filter(|(key, value)| {
             ENV_SECRET_PATTERNS
                 .iter()
                 .any(|pattern| key.to_lowercase().contains(pattern))
+                && value.trim().len() > 0
         })
-        .map(|(_, value)| value.trim().to_string())
+        .map(|(_, value)| regex::escape(value.trim()))
         .collect();
     let pattern = env_vars.join("|");
 
@@ -53,5 +54,19 @@ mod tests {
             "token: **secret**"
         );
         assert_eq!(redactor.redact("key: my-awesome-key"), "key: **secret**");
+    }
+
+    #[test]
+    fn test_secrets_redactor_with_special_chars() {
+        unsafe {
+            env::set_var("S3_SECRET", "invalid+S3+Key/withReChars");
+        }
+
+        let redactor = secrets_redactor().unwrap();
+
+        assert_eq!(
+            redactor.redact("secret: invalid+S3+Key/withReChars"),
+            "secret: **secret**"
+        );
     }
 }
