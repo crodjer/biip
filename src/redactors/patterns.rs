@@ -4,13 +4,13 @@ use regex::Regex;
 pub fn email_redactor() -> Option<Redactor> {
     Regex::new(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b")
         .ok()
-        .map(|regex| Redactor::regex(regex, Some("****@****".to_owned())))
+        .map(|regex| Redactor::regex(regex, Some("***@***".to_owned())))
 }
 
 pub fn ipv4_redactor() -> Option<Redactor> {
     Regex::new(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")
         .ok()
-        .map(|regex| Redactor::regex(regex, Some("***.***.***.***".to_owned())))
+        .map(|regex| Redactor::regex(regex, Some("IPv4<*.*.*.*>".to_owned())))
 }
 
 pub fn ipv6_redactor() -> Option<Redactor> {
@@ -21,7 +21,7 @@ pub fn ipv6_redactor() -> Option<Redactor> {
     Regex::new(&patterns.join("|"))
         .inspect_err(|err| println!("Got error in Foo: {err:#?}"))
         .ok()
-        .map(|regex| Redactor::regex(regex, Some("***:****:***".to_owned())))
+        .map(|regex| Redactor::regex(regex, Some("IPv6<*:*:*:*:*:*:*:*>".to_owned())))
 }
 
 #[cfg(test)]
@@ -31,14 +31,14 @@ mod tests {
     #[test]
     fn test_email_redactor() {
         let redactor = email_redactor().unwrap();
-        assert_eq!(redactor.redact("john.doe@example.com"), "****@****");
+        assert_eq!(redactor.redact("john.doe@example.com"), "***@***");
     }
 
     #[test]
     fn test_ipv4_redactor() {
         let redactor = ipv4_redactor().unwrap();
-        assert_eq!(redactor.redact("192.168.0.1"), "***.***.***.***");
-        assert_eq!(redactor.redact("10.0.0.1"), "***.***.***.***");
+        assert_eq!(redactor.redact("192.168.0.1"), "IPv4<*.*.*.*>");
+        assert_eq!(redactor.redact("10.0.0.1"), "IPv4<*.*.*.*>");
     }
 
     #[test]
@@ -46,11 +46,11 @@ mod tests {
         let redactor = ipv6_redactor().unwrap();
         assert_eq!(
             redactor.redact("2001:0db8:85a3:0000:0000:8a2e:0370:7334"),
-            "***:****:***"
+            "IPv6<*:*:*:*:*:*:*:*>"
         );
         assert_eq!(
             redactor.redact("2001:0db8:85a3:1234::8a2e:0370:7334"),
-            "***:****:***"
+            "IPv6<*:*:*:*:*:*:*:*>"
         );
     }
 }

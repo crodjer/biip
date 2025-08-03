@@ -32,10 +32,10 @@ $ cat /tmp/info.txt | biip
 Hi, I am "user"
 Current Directory: ~/foo/bar/baz
 My Key: **secret**
-My Email: ****@****
+My Email: ***@***
 My IPs:
-- ***:****:***
-- ***.***.***.***
+- IPv6<*:*:*:*:*:*:*:*>
+- IPv4<*.*.*.*>
 ```
 
 ## What does it scrub?
