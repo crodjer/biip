@@ -8,8 +8,12 @@ pub struct Biip {
 impl Biip {
     pub fn new() -> Biip {
         let redactors = vec![
-            redactors::user::home_redactor,
-            redactors::user::username_redactor,
+            redactors::home_redactor,
+            redactors::username_redactor,
+            redactors::secrets_redactor,
+            redactors::email_redactor,
+            redactors::ipv4_redactor,
+            redactors::ipv6_redactor,
         ]
         .iter()
         .filter_map(|&redactor| redactor())
