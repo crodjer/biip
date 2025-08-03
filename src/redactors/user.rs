@@ -1,4 +1,4 @@
-use regex::Regex;
+use regex::RegexBuilder;
 
 use crate::redactor::Redactor;
 use std::env;
@@ -6,7 +6,10 @@ use std::env;
 pub fn username_redactor() -> Option<Redactor> {
     match env::var("USER") {
         Ok(user) => Some(Redactor::regex(
-            Regex::new(&format!(r"\b{}\b", user)).ok()?,
+            RegexBuilder::new(&format!(r"\b{}\b", user))
+                .case_insensitive(true)
+                .build()
+                .ok()?,
             Some("user".to_string()),
         )),
         Err(_) => None,
@@ -35,6 +38,7 @@ mod tests {
         }
         let redactor = username_redactor().unwrap();
         assert_eq!(redactor.redact("I am: awesome-user"), "I am: user");
+        assert_eq!(redactor.redact("I am: Awesome-user"), "I am: user");
     }
 
     #[test]

@@ -5,9 +5,7 @@ version = "0.1.0"
 edition = "2024"
 readme = "README.md"
 homepage = "https://github.com/crodjer/biip"
-author = ["Rohan <code@rohanjain.in"]
 license = "GPL-3.0-or-later"
-
 
 [[bin]]
 name = "biip"
