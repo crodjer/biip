@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - '**'
+  release:
+    types: [created]
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+      - name: Run tests
+        run: cargo test --all-features
+
+  build:
+    name: Build for ${{ matrix.target }}
+    needs: test
+    if: github.event_name == 'release'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-latest
+          - target: aarch64-apple-darwin
+            os: macos-latest
+          - target: armv7-unknown-linux-gnueabihf
+            os: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: ${{ matrix.target }}
+          override: true
+
+      - name: Install cross-compilation tools
+        if: runner.os == 'Linux' && matrix.target != 'x86_64-unknown-linux-gnu'
+        run: |
+          sudo apt-get update -y
+          if [ "${{ matrix.target }}" = "aarch64-unknown-linux-gnu" ]; then
+            sudo apt-get install -y gcc-aarch64-linux-gnu
+          elif [ "${{ matrix.target }}" = "armv7-unknown-linux-gnueabihf" ]; then
+            sudo apt-get install -y gcc-arm-linux-gnueabihf
+          fi
+
+      - name: Build binary
+        run: cargo build --verbose --release --target ${{ matrix.target }}
+        env:
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
+          CARGO_TARGET_ARMV7_UNKNOWN_LINUX_GNUEABIHF_LINKER: arm-linux-gnueabihf-gcc
+
+      - name: Upload to release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./target/${{ matrix.target }}/release/biip
+          asset_name: biip-${{ matrix.target }}
+          asset_content_type: application/octet-stream
