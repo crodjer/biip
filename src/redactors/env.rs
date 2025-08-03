@@ -37,6 +37,7 @@ mod tests {
             env::set_var("BIIP_SECRET_TEST", "my-awesome-password");
             env::set_var("TOKEN_FOR_BIIP_TEST", "my-awesome-token");
             env::set_var("A_KEY_FOR_TEST_WITH_BIIP", "my-awesome-key");
+            env::set_var("SAFE_ENV_VAR", "safe-var");
         }
 
         let redactor = secrets_redactor().unwrap();
@@ -54,6 +55,10 @@ mod tests {
             "token: **secret**"
         );
         assert_eq!(redactor.redact("key: my-awesome-key"), "key: **secret**");
+        assert_eq!(
+            redactor.redact("key: my-awesome-key, Var: safe-var"),
+            "key: **secret**, Var: safe-var"
+        );
     }
 
     #[test]
