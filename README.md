@@ -69,12 +69,10 @@ When sharing code with LLMs for AI assistance, running it through `biip` would
 be beneficial to strip out any sensitive info. Like this:
 
 ```bash
-git ls-files |
- grep -vE 'LICENSE|.gitignore|.lock|.png|.jpg|.svg' |
- xargs tail -n +1 | biip | pbcopy
+fd --size -8K | xargs tail -n +1 | biip | pbcopy
 ```
 
-This will copy your entire codebase to clipboard, excluding certain files, and
+This will copy your entire codebase to clipboard, excluding large files and
 redact sensitive information. On Linux, use `xclip` (for X11) and `wl-copy` (for
 wayland) instead of `pbcopy`.
 
