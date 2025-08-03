@@ -1,18 +1,28 @@
 use crate::redactor::Redactor;
 use regex::Regex;
 
+/// Creates a `Redactor` for email addresses.
+///
+/// This redactor uses a regex to find and replace email addresses with `***@***`.
 pub fn email_redactor() -> Option<Redactor> {
     Regex::new(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b")
         .ok()
         .map(|regex| Redactor::regex(regex, Some("***@***".to_owned())))
 }
 
+/// Creates a `Redactor` for IPv4 addresses.
+///
+/// This redactor uses a regex to find and replace IPv4 addresses with `IPv4<*.*.*.*>`.
 pub fn ipv4_redactor() -> Option<Redactor> {
     Regex::new(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")
         .ok()
         .map(|regex| Redactor::regex(regex, Some("IPv4<*.*.*.*>".to_owned())))
 }
 
+/// Creates a `Redactor` for IPv6 addresses.
+///
+/// This redactor uses a regex to find and replace both compressed and uncompressed
+/// IPv6 addresses with `IPv6<*:*:*:*:*:*:*:*>`.
 pub fn ipv6_redactor() -> Option<Redactor> {
     let patterns = [
         r"\b(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}\b", // Uncompressed

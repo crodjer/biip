@@ -1,11 +1,21 @@
 use crate::redactor;
 use crate::redactors;
 
+/// The main struct for `biip`, responsible for holding the redactors and processing text.
 pub struct Biip {
     redactors: Vec<redactor::Redactor>,
 }
 
 impl Biip {
+    /// Creates a new `Biip` instance with a default set of redactors.
+    ///
+    /// The default redactors include:
+    /// - `home_redactor`: Redacts the user's home directory.
+    /// - `username_redactor`: Redacts the current user's username.
+    /// - `secrets_redactor`: Redacts sensitive environment variables.
+    /// - `email_redactor`: Redacts email addresses.
+    /// - `ipv4_redactor`: Redacts IPv4 addresses.
+    /// - `ipv6_redactor`: Redacts IPv6 addresses.
     pub fn new() -> Biip {
         let redactors = vec![
             redactors::home_redactor,
@@ -21,6 +31,7 @@ impl Biip {
         Biip { redactors }
     }
 
+    /// Processes a string, applying all configured redactors to it.
     pub fn process(self: &Self, string: &str) -> String {
         let mut redacted = string.to_string();
         for r in &self.redactors {

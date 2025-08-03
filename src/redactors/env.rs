@@ -5,6 +5,15 @@ use std::env;
 
 const ENV_SECRET_PATTERNS: &[&str] = &["password", "secret", "token", "key", "username", "email"];
 
+/// Creates a `Redactor` for sensitive environment variables.
+///
+/// This function scans all environment variables and creates a regex pattern
+/// to match the values of variables whose keys contain sensitive keywords
+/// (e.g., "password", "secret", "token", "key").
+///
+/// The matched values are replaced with `**secret**`.
+///
+/// Returns `None` if no such environment variables are found.
 pub fn secrets_redactor() -> Option<Redactor> {
     let env_vars: Vec<String> = env::vars()
         .filter(|(key, value)| {

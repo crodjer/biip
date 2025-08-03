@@ -3,6 +3,12 @@ use regex::RegexBuilder;
 use crate::redactor::Redactor;
 use std::env;
 
+/// Creates a `Redactor` for the current user's username.
+///
+/// This function reads the `USER` environment variable and creates a case-insensitive
+/// regex to replace occurrences of the username with `user`.
+///
+/// Returns `None` if the `USER` environment variable is not set.
 pub fn username_redactor() -> Option<Redactor> {
     match env::var("USER") {
         Ok(user) => Some(Redactor::regex(
@@ -16,6 +22,12 @@ pub fn username_redactor() -> Option<Redactor> {
     }
 }
 
+/// Creates a `Redactor` for the user's home directory.
+///
+/// This function gets the user's home directory path and creates a `Redactor`
+/// to replace it with `~`.
+///
+/// Returns `None` if the home directory path cannot be determined.
 pub fn home_redactor() -> Option<Redactor> {
     match env::home_dir() {
         Some(path) => path
