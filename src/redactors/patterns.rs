@@ -1,3 +1,5 @@
+use std::{net::Ipv6Addr, str::FromStr};
+
 use crate::redactor::Redactor;
 use regex::Regex;
 
@@ -42,19 +44,25 @@ pub fn ipv4_redactor() -> Option<Redactor> {
         .map(|regex| Redactor::regex(regex, Some("IPv4<••.••.••.••>".to_owned())))
 }
 
-/// Creates a `Redactor` for IPv6 addresses.
-///
-/// This redactor uses a regex to find and replace both compressed and uncompressed
-/// IPv6 addresses with `IPv6<••:••:••:••:••:••:••:••>`.
+// A simple validator function that leverages Rust's IPv6 parser.
+fn is_valid_ipv6(s: &str) -> bool {
+    Ipv6Addr::from_str(s).is_ok()
+}
+
+/// Creates a Redactor for IPv6 addresses using regex search and std lib validation.
 pub fn ipv6_redactor() -> Option<Redactor> {
-    let patterns = [
-        r"\b(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}\b", // Uncompressed
-        r"\b(?:[0-9a-fA-F]{1,4}:){1,6}(?::[0-9a-fA-F]{1,4}){0,6}\b", // Compressed
-    ];
-    Regex::new(&patterns.join("|"))
-        .inspect_err(|err| println!("Got error in Foo: {err:#?}"))
-        .ok()
-        .map(|regex| Redactor::regex(regex, Some("IPv6<••:••:••:••:••:••:••:••>".to_owned())))
+    // This regex is intentionally broad. It finds any "word" that contains hex
+    // characters and at least one colon. The powerful `Ipv6Addr` parser
+    // will then reject anything that isn't a valid address (like a MAC address).
+    let pattern = r"\b[0-9a-fA-F:]+:[0-9a-fA-F:]*\b";
+
+    Regex::new(pattern).ok().map(|re| {
+        Redactor::validated(
+            re,
+            is_valid_ipv6,
+            Some("IPv6<••:••:••:••:••:••:••:••>".to_owned()),
+        )
+    })
 }
 
 /// Redacts common credit card number patterns.
