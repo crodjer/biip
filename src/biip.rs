@@ -13,17 +13,34 @@ impl Biip {
     /// - `home_redactor`: Redacts the user's home directory.
     /// - `username_redactor`: Redacts the current user's username.
     /// - `secrets_redactor`: Redacts sensitive environment variables.
+    /// - `url_credentials_redactor`: Redacts URL credentials. Must be before email redaction.
+    /// - `jwt_redactor`: Redacts JSON Web Tokens.
     /// - `email_redactor`: Redacts email addresses.
     /// - `ipv4_redactor`: Redacts IPv4 addresses.
     /// - `ipv6_redactor`: Redacts IPv6 addresses.
+    /// - `mac_address_redactor`: Redacts MAC addresses.
+    /// - `credit_card_redactor`: Redacts credit card numbers.
+    /// - `phone_number_redactor`: Redacts phone numbers.
+    /// - `uuid_redactor`: Redacts UUIDs.
+    /// - `cloud_keys_redactor`: Redacts cloud keys.
     pub fn new() -> Biip {
         let redactors = vec![
             redactors::home_redactor,
             redactors::username_redactor,
             redactors::secrets_redactor,
+            redactors::home_redactor,
+            redactors::username_redactor,
+            redactors::secrets_redactor,
+            redactors::url_credentials_redactor,
+            redactors::jwt_redactor,
             redactors::email_redactor,
+            redactors::mac_address_redactor,
             redactors::ipv4_redactor,
             redactors::ipv6_redactor,
+            redactors::credit_card_redactor,
+            redactors::phone_number_redactor,
+            redactors::uuid_redactor,
+            redactors::cloud_keys_redactor,
         ]
         .iter()
         .filter_map(|&redactor| redactor())

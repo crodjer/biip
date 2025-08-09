@@ -10,6 +10,10 @@ pub enum Redactor {
     /// A regex-based replacement.
     /// The `Regex` is the pattern to find, and the `String` is the replacement.
     Re(Regex, String),
+    /// A regex-based replacement that uses capture groups.
+    /// The `Regex` is the pattern, and the `String` is the replacement
+    /// which can include capture group references like `$1`, `$2`.
+    ReWithCapture(Regex, String),
 }
 
 impl Redactor {
@@ -35,6 +39,16 @@ impl Redactor {
         Redactor::Re(pattern, replacer)
     }
 
+    /// Creates a new `Redactor::ReWithCapture` variant.
+    ///
+    /// # Arguments
+    ///
+    /// * `pattern` - The regex pattern to search for.
+    /// * `replacer` - The replacement string with capture groups.
+    pub fn regex_with_capture(pattern: Regex, replacer: String) -> Self {
+        Redactor::ReWithCapture(pattern, replacer)
+    }
+
     /// Applies the redactor to a given text.
     ///
     /// # Arguments
@@ -47,9 +61,9 @@ impl Redactor {
     pub fn redact(&self, text: &str) -> String {
         match self {
             Redactor::Simple(pattern, replacer) => text.to_string().replace(pattern, replacer),
-            Redactor::Re(pattern, replacer) => {
-                // println!("{} matches: {}", pattern, pattern.find_iter(text).count());
-                pattern.replace_all(text, replacer).to_string()
+            Redactor::Re(pattern, replacer) => pattern.replace_all(text, replacer).to_string(),
+            Redactor::ReWithCapture(pattern, replacer) => {
+                pattern.replace_all(text, replacer.as_str()).to_string()
             }
         }
     }
