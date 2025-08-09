@@ -20,7 +20,7 @@ impl Redactor {
     /// * `pattern` - The string pattern to search for.
     /// * `beep` - An optional replacement string. If `None`, a default replacer will be used.
     pub fn simple(pattern: String, beep: Option<String>) -> Self {
-        let replacer = beep.clone().unwrap_or(String::from("***"));
+        let replacer = beep.clone().unwrap_or(String::from("•••"));
         Redactor::Simple(pattern, replacer)
     }
 
@@ -31,7 +31,7 @@ impl Redactor {
     /// * `pattern` - The regex pattern to search for.
     /// * `beep` - An optional replacement string. If `None`, a default replacer will be used.
     pub fn regex(pattern: Regex, beep: Option<String>) -> Self {
-        let replacer = beep.clone().unwrap_or(String::from("***"));
+        let replacer = beep.clone().unwrap_or(String::from("•••"));
         Redactor::Re(pattern, replacer)
     }
 

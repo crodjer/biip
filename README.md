@@ -31,11 +31,11 @@ My IPs:
 $ cat /tmp/info.txt | biip
 Hi, I am "user"
 Current Directory: ~/foo/bar/baz
-My Key: **secret**
-My Email: ***@***
+My Key: ••••••••
+My Email: •••@•••
 My IPs:
-- IPv6<*:*:*:*:*:*:*:*>
-- IPv4<*.*.*.*>
+- IPv6<••:••:••:••:••:••:••:••>
+- IPv4<••.••.••.••>
 ```
 
 ## What does it scrub?
@@ -47,13 +47,13 @@ Biip can scrub:
  2. Home directory
     It replaces paths referring to the home directory with `~`.
  3. Emails
-    It replaces any email addresses in the text with a pattern: `***@***`.
+    It replaces any email addresses in the text with a pattern: `•••@•••`.
  4. IP Addresses
-    It replaces IPv4 and IPv6 addresses with: `***.***.***.***` and
-    `***:****:***` respectively.
+    It replaces IPv4 and IPv6 addresses with: `IPv4<••.••.••.••>` and
+    `IPv6<••:••:••:••:••:••:••:••>` respectively.
  5. Keys / Passwords from environment.
     It replaces the contents for any potentially sensitive environment variables
-    with: `**secret**`. It looks for any environment variables that may have
+    with: `••••••••`. It looks for any environment variables that may have
     these keywords in the name:
     - username
     - password
@@ -82,8 +82,8 @@ if .env's content was in the stdin.
 So, `biip` would redact (keys, secrets etc) from the output:
 ```sh
 $ cat .env | biip
-S3_KEY="**secret**"
-S3_SECRET="**secret**"
-ANTHROPIC_API_KEY="**secret**"
-OPENAI_API_KEY="**secret**"
+S3_KEY="••••••••"
+S3_SECRET="••••••••"
+ANTHROPIC_API_KEY="••••••••"
+OPENAI_API_KEY="••••••••"
 ```

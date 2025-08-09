@@ -3,26 +3,26 @@ use regex::Regex;
 
 /// Creates a `Redactor` for email addresses.
 ///
-/// This redactor uses a regex to find and replace email addresses with `***@***`.
+/// This redactor uses a regex to find and replace email addresses with `•••@•••`.
 pub fn email_redactor() -> Option<Redactor> {
     Regex::new(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b")
         .ok()
-        .map(|regex| Redactor::regex(regex, Some("***@***".to_owned())))
+        .map(|regex| Redactor::regex(regex, Some("•••@•••".to_owned())))
 }
 
 /// Creates a `Redactor` for IPv4 addresses.
 ///
-/// This redactor uses a regex to find and replace IPv4 addresses with `IPv4<*.*.*.*>`.
+/// This redactor uses a regex to find and replace IPv4 addresses with `IPv4<••.••.••.••>`.
 pub fn ipv4_redactor() -> Option<Redactor> {
     Regex::new(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")
         .ok()
-        .map(|regex| Redactor::regex(regex, Some("IPv4<*.*.*.*>".to_owned())))
+        .map(|regex| Redactor::regex(regex, Some("IPv4<••.••.••.••>".to_owned())))
 }
 
 /// Creates a `Redactor` for IPv6 addresses.
 ///
 /// This redactor uses a regex to find and replace both compressed and uncompressed
-/// IPv6 addresses with `IPv6<*:*:*:*:*:*:*:*>`.
+/// IPv6 addresses with `IPv6<••:••:••:••:••:••:••:••>`.
 pub fn ipv6_redactor() -> Option<Redactor> {
     let patterns = [
         r"\b(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}\b", // Uncompressed
@@ -31,7 +31,7 @@ pub fn ipv6_redactor() -> Option<Redactor> {
     Regex::new(&patterns.join("|"))
         .inspect_err(|err| println!("Got error in Foo: {err:#?}"))
         .ok()
-        .map(|regex| Redactor::regex(regex, Some("IPv6<*:*:*:*:*:*:*:*>".to_owned())))
+        .map(|regex| Redactor::regex(regex, Some("IPv6<••:••:••:••:••:••:••:••>".to_owned())))
 }
 
 #[cfg(test)]
@@ -41,14 +41,14 @@ mod tests {
     #[test]
     fn test_email_redactor() {
         let redactor = email_redactor().unwrap();
-        assert_eq!(redactor.redact("john.doe@example.com"), "***@***");
+        assert_eq!(redactor.redact("john.doe@example.com"), "•••@•••");
     }
 
     #[test]
     fn test_ipv4_redactor() {
         let redactor = ipv4_redactor().unwrap();
-        assert_eq!(redactor.redact("192.168.0.1"), "IPv4<*.*.*.*>");
-        assert_eq!(redactor.redact("10.0.0.1"), "IPv4<*.*.*.*>");
+        assert_eq!(redactor.redact("192.168.0.1"), "IPv4<••.••.••.••>");
+        assert_eq!(redactor.redact("10.0.0.1"), "IPv4<••.••.••.••>");
     }
 
     #[test]
@@ -56,11 +56,11 @@ mod tests {
         let redactor = ipv6_redactor().unwrap();
         assert_eq!(
             redactor.redact("2001:0db8:85a3:0000:0000:8a2e:0370:7334"),
-            "IPv6<*:*:*:*:*:*:*:*>"
+            "IPv6<••:••:••:••:••:••:••:••>"
         );
         assert_eq!(
             redactor.redact("2001:0db8:85a3:1234::8a2e:0370:7334"),
-            "IPv6<*:*:*:*:*:*:*:*>"
+            "IPv6<••:••:••:••:••:••:••:••>"
         );
     }
 }

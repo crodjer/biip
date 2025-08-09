@@ -66,10 +66,10 @@ mod tests {
         let expected = [
             "Home: ~/Documents",
             "Username: user",
-            "Email: ***@***",
-            "IPv4: IPv4<*.*.*.*>",
-            "IPv6: IPv6<*:*:*:*:*:*:*:*>",
-            "Secret: **secret**",
+            "Email: •••@•••",
+            "IPv4: IPv4<••.••.••.••>",
+            "IPv6: IPv6<••:••:••:••:••:••:••:••>",
+            "Secret: ••••••••",
         ]
         .join("\n");
 

@@ -46,8 +46,8 @@
 //! // The output will be redacted. Note that the exact output might vary
 //! // based on the environment and redactors.
 //! assert!(redacted.contains("Current Directory: ~/foo/bar/baz"));
-//! assert!(redacted.contains("My Secret Key: **secret**"));
-//! assert!(redacted.contains("My Email: ***@***"));
+//! assert!(redacted.contains("My Secret Key: ••••••••"));
+//! assert!(redacted.contains("My Email: •••@•••"));
 //! ```
 //!
 //! # What does it scrub?
@@ -56,9 +56,9 @@
 //!
 //! 1.  **Unix (Linux/Mac) username**: It removes any mention of a user's Unix username from the supplied text, replacing it with `user`.
 //! 2.  **Home directory**: It replaces paths referring to the home directory with `~`.
-//! 3.  **Emails**: It replaces any email addresses in the text with a pattern: `***@***`.
-//! 4.  **IP Addresses**: It replaces IPv4 and IPv6 addresses.
-//! 5.  **Keys / Passwords from environment**: It replaces the values for any potentially sensitive environment variables with: `**secret**`. It looks for any environment variables that may have these keywords in the name: `username`, `password`, `email`, `secret`, `token`, `key`.
+//! 3.  **Emails**: It replaces any email addresses in the text with a pattern: `•••@•••`.
+//! 4.  **IP Addresses**: It replaces IPv4 and IPv6 addresses with patterns `IPv4<••.••.••.••>` and `IPv6<••:••:••:••:••:••:••:••>` respectively.
+//! 5.  **Keys / Passwords from environment**: It replaces the values for any potentially sensitive environment variables with: `••••••••`. It looks for any environment variables that may have these keywords in the name: `username`, `password`, `email`, `secret`, `token`, `key`.
 
 pub mod biip;
 pub mod redactor;
