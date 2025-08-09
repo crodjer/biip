@@ -16,6 +16,7 @@ cargo install biip
 Pipe any text to `biip` to have it scrub away sensitive information.
 
 For example, if you have a file with content:
+
 ```
 Hi, I am "awesome-user"
 Current Directory: /Users/awesome-user/foo/bar/baz
@@ -24,9 +25,13 @@ My Email: foo@bar.com
 My IPs:
 - fe80::aaa:8888:ffff:9999
 - 192.168.42.42
+Connect via ftp://user:pass@example.com
+Auth token is eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0In0.sZtZQ...
+My MAC address is 00-1A-2B-3C-4D-5E.
 ```
 
 `biip` can redact some sensitive information from it:
+
 ```
 $ cat /tmp/info.txt | biip
 Hi, I am "user"
@@ -36,31 +41,26 @@ My Email: •••@•••
 My IPs:
 - IPv6<••:••:••:••:••:••:••:••>
 - IPv4<••.••.••.••>
+Connect via ftp://••••:••••@example.com
+Auth token is ••••🌐•
+My MAC address is ••:••:••:••:••:••.
 ```
 
 ## What does it scrub?
 Biip can scrub:
 
- 1. Unix (Linux/Mac) username
-    It removes any mention of a user's Unix username from the supplied text,
-    replacing it with `user`.
- 2. Home directory
-    It replaces paths referring to the home directory with `~`.
- 3. Emails
-    It replaces any email addresses in the text with a pattern: `•••@•••`.
- 4. IP Addresses
-    It replaces IPv4 and IPv6 addresses with: `IPv4<••.••.••.••>` and
-    `IPv6<••:••:••:••:••:••:••:••>` respectively.
- 5. Keys / Passwords from environment.
-    It replaces the contents for any potentially sensitive environment variables
-    with: `••••••••`. It looks for any environment variables that may have
-    these keywords in the name:
-    - username
-    - password
-    - email
-    - secret
-    - token
-    - key
+ 1. **Unix (Linux/Mac) username**: It removes any mention of a user's Unix username.
+ 2. **Home directory**: It replaces paths referring to the home directory with `~`.
+ 3. **URL Credentials**: Scrubs usernames and passwords from URLs (e.g., `https://user:pass@...`).
+ 4. **Email Addresses**: Replaces emails with `•••@•••`.
+ 5. **IP Addresses**: Redacts IPv4 and IPv6 addresses.
+ 6. **MAC Addresses**: Replaces MAC addresses.
+ 7. **Phone Numbers**: Redacts common phone number formats.
+ 8. **Credit Card Numbers**: Redacts common credit card number patterns.
+ 9. **JSON Web Tokens (JWTs)**: Finds and redacts JWTs.
+ 10. **API Keys**: Redacts common API key formats from providers like AWS, OpenAI, etc.
+ 11. **UUIDs**: Replaces UUIDs with a redacted pattern.
+ 12. **Keys / Passwords from environment**: It replaces the values for any potentially sensitive environment variables with: `••••••••`.
 
 ## How is it useful?
 
@@ -80,10 +80,10 @@ wayland) instead of `pbcopy`.
 `biip` considers `.env`, so it'll remember to not share any sensitive keys even
 if .env's content was in the stdin.
 So, `biip` would redact (keys, secrets etc) from the output:
+
 ```sh
 $ cat .env | biip
 S3_KEY="••••••••"
 S3_SECRET="••••••••"
-ANTHROPIC_API_KEY="••••••••"
-OPENAI_API_KEY="••••••••"
+OPENAI_API_KEY="••••☁️•"
 ```

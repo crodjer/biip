@@ -44,3 +44,60 @@ pub fn cloud_keys_redactor() -> Option<Redactor> {
         .ok()
         .map(|re| Redactor::regex(re, Some("••••☁️•".to_string())))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_jwt_redactor() {
+        let redactor = jwt_redactor().unwrap();
+        let jwt = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c";
+        assert_eq!(redactor.redact(jwt), "••••🌐•");
+        // Ensure it doesn't redact a regular domain
+        assert_eq!(redactor.redact("api.service.io"), "api.service.io");
+    }
+
+    #[test]
+    fn test_credit_card_redactor() {
+        let redactor = credit_card_redactor().unwrap();
+        assert_eq!(
+            redactor.redact("4111-1111-1111-1111"),
+            "•••• •••• •••• ••••"
+        );
+        assert_eq!(
+            redactor.redact("4111 1111 1111 1111"),
+            "•••• •••• •••• ••••"
+        );
+        assert_eq!(redactor.redact("4111111111111111"), "•••• •••• •••• ••••");
+    }
+
+    #[test]
+    fn test_phone_number_redactor() {
+        let redactor = phone_number_redactor().unwrap();
+        assert_eq!(redactor.redact("(123) 456-7890"), "(•••) •••-••••");
+        assert_eq!(redactor.redact("123-456-7890"), "(•••) •••-••••");
+    }
+
+    #[test]
+    fn test_uuid_redactor() {
+        let redactor = uuid_redactor().unwrap();
+        assert_eq!(
+            redactor.redact("User ID: 123e4567-e89b-12d3-a456-426614174000"),
+            "User ID: ••••••••-••••-••••-••••-••••••••••••"
+        );
+    }
+
+    #[test]
+    fn test_cloud_keys_redactor() {
+        let redactor = cloud_keys_redactor().unwrap();
+        assert_eq!(
+            redactor.redact("My key is AKIAIOSFODNN7EXAMPLE"),
+            "My key is ••••☁️•"
+        );
+        assert_eq!(
+            redactor.redact("sk-abcdefghijklmnopqrstuvwxyz1234567890ABCD"),
+            "••••☁️•"
+        );
+    }
+}

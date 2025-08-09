@@ -63,28 +63,60 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_url_credentials_redactor() {
+        let redactor = url_credentials_redactor().unwrap();
+        assert_eq!(
+            redactor.redact("visit https://user:password123@example.com"),
+            "visit https://••••:••••@example.com"
+        );
+        assert_eq!(
+            redactor.redact("no creds here: http://example.com"),
+            "no creds here: http://example.com"
+        );
+    }
+
+    #[test]
+    fn test_mac_address_redactor() {
+        let redactor = mac_address_redactor().unwrap();
+        assert_eq!(
+            redactor.redact("My MAC is 00:1A:2B:3C:4D:5E."),
+            "My MAC is ••:••:••:••:••:••."
+        );
+        assert_eq!(
+            redactor.redact("Another is 01-23-45-67-89-AB."),
+            "Another is ••:••:••:••:••:••."
+        );
+    }
+
+    #[test]
+    fn test_ipv6_redactor_validated() {
+        let redactor = ipv6_redactor().unwrap();
+        // Test a full, tricky IPv6 address
+        assert_eq!(
+            redactor.redact("The address is fe80::aaa:8888:ffff:9999"),
+            "The address is IPv6<••:••:••:••:••:••:••:••>"
+        );
+        // Test uncompressed
+        assert_eq!(
+            redactor.redact("2001:0db8:85a3:0000:0000:8a2e:0370:7334"),
+            "IPv6<••:••:••:••:••:••:••:••>"
+        );
+        // Ensure it does NOT redact a MAC address
+        assert_eq!(
+            redactor.redact("This is a MAC: 00:1A:2B:3C:4D:5E"),
+            "This is a MAC: 00:1A:2B:3C:4D:5E"
+        );
+    }
+
+    #[test]
     fn test_email_redactor() {
         let redactor = email_redactor().unwrap();
-        assert_eq!(redactor.redact("john.doe@example.com"), "•••@•••");
+        assert_eq!(redactor.redact("email: test@example.com"), "email: •••@•••");
     }
 
     #[test]
     fn test_ipv4_redactor() {
         let redactor = ipv4_redactor().unwrap();
-        assert_eq!(redactor.redact("192.168.0.1"), "IPv4<••.••.••.••>");
-        assert_eq!(redactor.redact("10.0.0.1"), "IPv4<••.••.••.••>");
-    }
-
-    #[test]
-    fn test_ipv6_redactor() {
-        let redactor = ipv6_redactor().unwrap();
-        assert_eq!(
-            redactor.redact("2001:0db8:85a3:0000:0000:8a2e:0370:7334"),
-            "IPv6<••:••:••:••:••:••:••:••>"
-        );
-        assert_eq!(
-            redactor.redact("2001:0db8:85a3:1234::8a2e:0370:7334"),
-            "IPv6<••:••:••:••:••:••:••:••>"
-        );
+        assert_eq!(redactor.redact("IP: 192.168.1.1"), "IP: IPv4<••.••.••.••>");
     }
 }

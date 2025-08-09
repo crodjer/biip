@@ -9,34 +9,26 @@ pub struct Biip {
 impl Biip {
     /// Creates a new `Biip` instance with a default set of redactors.
     ///
-    /// The default redactors include:
-    /// - `home_redactor`: Redacts the user's home directory.
-    /// - `username_redactor`: Redacts the current user's username.
-    /// - `secrets_redactor`: Redacts sensitive environment variables.
-    /// - `url_credentials_redactor`: Redacts URL credentials. Must be before email redaction.
-    /// - `jwt_redactor`: Redacts JSON Web Tokens.
-    /// - `email_redactor`: Redacts email addresses.
-    /// - `ipv4_redactor`: Redacts IPv4 addresses.
-    /// - `ipv6_redactor`: Redacts IPv6 addresses.
-    /// - `mac_address_redactor`: Redacts MAC addresses.
-    /// - `credit_card_redactor`: Redacts credit card numbers.
-    /// - `phone_number_redactor`: Redacts phone numbers.
-    /// - `uuid_redactor`: Redacts UUIDs.
-    /// - `cloud_keys_redactor`: Redacts cloud keys.
+    /// The order of redactors is important to prevent conflicts (e.g., a MAC address
+    /// being mistaken for a partial IPv6 address). The order is generally:
+    /// 1. User and environment-specific (most specific).
+    /// 2. Networking patterns with specific formats.
+    /// 3. Generic patterns like JWTs and UUIDs.
     pub fn new() -> Biip {
         let redactors = vec![
+            // User-specific redactors
             redactors::home_redactor,
             redactors::username_redactor,
+            // Environment and secrets
             redactors::secrets_redactor,
-            redactors::home_redactor,
-            redactors::username_redactor,
-            redactors::secrets_redactor,
+            // Networking patterns (order is important here)
             redactors::url_credentials_redactor,
-            redactors::jwt_redactor,
             redactors::email_redactor,
             redactors::mac_address_redactor,
             redactors::ipv4_redactor,
             redactors::ipv6_redactor,
+            // Generic and vendor-specific patterns
+            redactors::jwt_redactor,
             redactors::credit_card_redactor,
             redactors::phone_number_redactor,
             redactors::uuid_redactor,
