@@ -23,8 +23,8 @@ Current Directory: /Users/awesome-user/foo/bar/baz
 My Secret Key: mAM3zwogXpV6Czj6J
 My Email: foo@bar.com
 My IPs:
-- fe80::aaa:8888:ffff:9999
-- 192.168.42.42
+- 2001:db8:85a3::8a2e:370:7334
+- 8.8.8.8
 Connect via ftp://user:pass@example.com
 Auth token is eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0In0.sZtZQ...
 My MAC address is 00-1A-2B-3C-4D-5E.
@@ -33,10 +33,11 @@ My MAC address is 00-1A-2B-3C-4D-5E.
 `biip` can redact some sensitive information from it:
 
 ```
-$ cat /tmp/info.txt | biip
+$ biip /tmp/info.txt
+─── /tmp/info.txt ───
 Hi, I am "user"
 Current Directory: ~/foo/bar/baz
-My Key: ••••••••
+My Secret Key: ••••••••
 My Email: •••@•••
 My IPs:
 - IPv6<••:••:••:••:••:••:••:••>
@@ -46,6 +47,11 @@ Auth token is ••••🌐•
 My MAC address is ••:••:••:••:••:••.
 ```
 
+Other ways to run:
+
+- From stdin: `cat /tmp/info.txt | biip`
+- Interactive paste: run `biip`, paste content, then press `Ctrl-D`.
+
 ## What does it scrub?
 Biip can scrub:
 
@@ -53,7 +59,7 @@ Biip can scrub:
  2. **Home directory**: It replaces paths referring to the home directory with `~`.
  3. **URL Credentials**: Scrubs usernames and passwords from URLs (e.g., `https://user:pass@...`).
  4. **Email Addresses**: Replaces emails with `•••@•••`.
- 5. **IP Addresses**: Redacts IPv4 and IPv6 addresses.
+ 5. **IP Addresses**: Redacts public IPv4 and IPv6 addresses (skips local/private addresses).
  6. **MAC Addresses**: Replaces MAC addresses.
  7. **Phone Numbers**: Redacts common phone number formats.
  8. **Credit Card Numbers**: Redacts common credit card number patterns.
@@ -69,12 +75,19 @@ When sharing code with LLMs for AI assistance, running it through `biip` would
 be beneficial to strip out any sensitive info. Like this:
 
 ```bash
-fd --size -8K | xargs tail -n +1 | biip | pbcopy
+fd -t f | xargs biip | pbcopy
 ```
 
 This will copy your entire codebase to clipboard, excluding large files and
 redact sensitive information. On Linux, use `xclip` (for X11) and `wl-copy` (for
 wayland) instead of `pbcopy`.
+
+To exclude files (like LICENSE, Cargo.lock, .svg, etc.) which could unnecessarily
+bloat context, use `.fdignore`.
+
+> Note: When reading files via arguments (including `xargs biip`), `biip`
+> automatically skips binary files. You usually don't need to exclude image
+> formats explicitly.
 
 ### Copying .env
 `biip` considers `.env`, so it'll remember to not share any sensitive keys even
