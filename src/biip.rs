@@ -76,7 +76,7 @@ mod tests {
             "Home: ~/Documents",
             "Username: user",
             "Email: •••@•••",
-            "IPv4: IPv4<••.••.••.••>",
+            "IPv4: 192.168.0.1",
             "IPv6: IPv6<••:••:••:••:••:••:••:••>",
             "Secret: ••••••••",
         ]

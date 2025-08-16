@@ -32,7 +32,7 @@
 //! let redacted = biip.process(input);
 //!
 //! assert!(redacted.contains(r#"Hi, I am "user". My home is ~."#));
-//! assert!(redacted.contains("My IP is IPv4<••.••.••.••> and the gateway is IPv6<••:••:••:••:••:••:••:••>."));
+//! assert!(redacted.contains("My IP is 192.168.1.10 and the gateway is fe80::1."));
 //! assert!(redacted.contains("My secret is ••••••••."));
 //! ```
 pub mod biip;

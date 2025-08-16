@@ -1,4 +1,4 @@
-use std::{net::Ipv6Addr, str::FromStr};
+use std::net::{Ipv4Addr, Ipv6Addr};
 
 use crate::redactor::Redactor;
 use regex::Regex;
@@ -32,27 +32,52 @@ pub fn mac_address_redactor() -> Option<Redactor> {
 ///
 /// This redactor uses a regex to find and replace IPv4 addresses with `IPv4<••.••.••.••>`.
 pub fn ipv4_redactor() -> Option<Redactor> {
+    // Broadly match IPv4 candidates, then validate and only redact public ones.
     Regex::new(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")
         .ok()
-        .map(|regex| Redactor::regex(regex, Some("IPv4<••.••.••.••>".to_owned())))
+        .map(|regex| Redactor::validated(regex, is_public_ipv4, Some("IPv4<••.••.••.••>".to_owned())))
 }
 
-// A simple validator function that leverages Rust's IPv6 parser.
-fn is_valid_ipv6(s: &str) -> bool {
-    Ipv6Addr::from_str(s).is_ok()
+// Validators that only consider addresses "public" (i.e., redactable).
+// Local/private/link-local/loopback/unspecified/etc. are NOT redacted.
+fn is_public_ipv4(s: &str) -> bool {
+    if let Ok(addr) = s.parse::<Ipv4Addr>() {
+        // Treat these as local/non-sensitive -> do not redact.
+        !(addr.is_private()
+            || addr.is_loopback()
+            || addr.is_link_local()
+            || addr.is_unspecified()
+            || addr.is_broadcast())
+    } else {
+        false
+    }
+}
+
+fn is_public_ipv6(s: &str) -> bool {
+    if let Ok(addr) = s.parse::<Ipv6Addr>() {
+        // Do not redact loopback (::1), link-local (fe80::/10), unique local (fc00::/7),
+        // unspecified (::), or multicast.
+        !(addr.is_loopback()
+            || addr.is_unicast_link_local()
+            || addr.is_unique_local()
+            || addr.is_unspecified()
+            || addr.is_multicast())
+    } else {
+        false
+    }
 }
 
 /// Creates a Redactor for IPv6 addresses using regex search and std lib validation.
 pub fn ipv6_redactor() -> Option<Redactor> {
-    // This regex is intentionally broad. It finds any "word" that contains hex
-    // characters and at least one colon. The powerful `Ipv6Addr` parser
-    // will then reject anything that isn't a valid address (like a MAC address).
-    let pattern = r"\b[0-9a-fA-F:]+:[0-9a-fA-F:]*\b";
+    // Broad candidate: contains at least one colon and ends with a hex digit.
+    // This avoids matching bare `::` and most code scopes like `crate::path`.
+    // Validation via std parses and filters non-public scopes.
+    let pattern = r"\b[0-9a-fA-F:]+:[0-9a-fA-F:]*[0-9a-fA-F]\b";
 
     Regex::new(pattern).ok().map(|re| {
         Redactor::validated(
             re,
-            is_valid_ipv6,
+            is_public_ipv6,
             Some("IPv6<••:••:••:••:••:••:••:••>".to_owned()),
         )
     })
@@ -91,10 +116,10 @@ mod tests {
     #[test]
     fn test_ipv6_redactor_validated() {
         let redactor = ipv6_redactor().unwrap();
-        // Test a full, tricky IPv6 address
+        // Link-local should NOT be redacted
         assert_eq!(
             redactor.redact("The address is fe80::aaa:8888:ffff:9999"),
-            "The address is IPv6<••:••:••:••:••:••:••:••>"
+            "The address is fe80::aaa:8888:ffff:9999"
         );
         // Test uncompressed
         assert_eq!(
@@ -109,6 +134,18 @@ mod tests {
     }
 
     #[test]
+    fn test_ipv6_does_not_redact_rust_paths_or_unspecified() {
+        let redactor = ipv6_redactor().unwrap();
+        // Rust paths should be unchanged
+        assert_eq!(
+            redactor.redact("use crate::redactor::Redactor;"),
+            "use crate::redactor::Redactor;"
+        );
+        // Bare unspecified should not be redacted
+        assert_eq!(redactor.redact("::"), "::");
+    }
+
+    #[test]
     fn test_email_redactor() {
         let redactor = email_redactor().unwrap();
         assert_eq!(redactor.redact("email: test@example.com"), "email: •••@•••");
@@ -117,6 +154,9 @@ mod tests {
     #[test]
     fn test_ipv4_redactor() {
         let redactor = ipv4_redactor().unwrap();
-        assert_eq!(redactor.redact("IP: 192.168.1.1"), "IP: IPv4<••.••.••.••>");
+        // Private IPv4 should NOT be redacted
+        assert_eq!(redactor.redact("IP: 192.168.1.1"), "IP: 192.168.1.1");
+        // Public IPv4 should be redacted
+        assert_eq!(redactor.redact("DNS: 8.8.8.8"), "DNS: IPv4<••.••.••.••>");
     }
 }
