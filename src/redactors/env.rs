@@ -70,7 +70,7 @@ pub fn custom_patterns_redactor() -> Option<Redactor> {
 
     let combined = format!("(?:{})", valid_parts.join("|"));
     match RegexBuilder::new(&combined).case_insensitive(true).build() {
-        Ok(re) => Some(Redactor::regex(re, Some(String::from("••••••⚙•")))),
+        Ok(re) => Some(Redactor::regex(re, Some(String::from("••••⚙•")))),
         Err(err) => {
             eprintln!(
                 "[biip] Warning: failed to build combined BIIP_* regex: {}",
@@ -141,7 +141,7 @@ mod tests {
         let redactor = custom_patterns_redactor().unwrap();
 
         let input = "A Foo\nAnother Bar\nAnd Baz\nControl: should-not-be-captured";
-        let expected = "A ••••••⚙•\nAnother ••••••⚙•\nAnd ••••••⚙•\nControl: should-not-be-captured";
+        let expected = "A ••••⚙•\nAnother ••••⚙•\nAnd ••••⚙•\nControl: should-not-be-captured";
         assert_eq!(redactor.redact(input), expected);
     }
 
@@ -154,6 +154,6 @@ mod tests {
         }
 
         let redactor = custom_patterns_redactor().unwrap();
-        assert_eq!(redactor.redact("X Qux Y"), "X ••••••⚙• Y");
+        assert_eq!(redactor.redact("X Qux Y"), "X ••••⚙• Y");
     }
 }
