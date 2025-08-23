@@ -35,6 +35,28 @@ pub fn secrets_redactor() -> Option<Redactor> {
     }
 }
 
+/// Creates a `Redactor` for any environment variables whose names start with "BIIP".
+///
+/// This lets users define custom variables like `BIIP_PERSONAL_PATTERNS`,
+/// `BIIP_SENSITIVE`, etc., and have their values redacted from output.
+///
+/// Returns `None` if no such environment variables are found.
+pub fn custom_patterns_redactor() -> Option<Redactor> {
+    let env_vars: Vec<String> = env::vars()
+        .filter(|(key, value)| key.to_uppercase().starts_with("BIIP") && !value.trim().is_empty())
+        .map(|(_, value)| regex::escape(value.trim()))
+        .collect();
+
+    let pattern = env_vars.join("|");
+    if pattern.is_empty() {
+        None
+    } else {
+        Regex::new(&pattern)
+            .ok()
+            .map(|regex| Redactor::regex(regex, Some(String::from("••••••⚙•"))))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -42,8 +64,8 @@ mod tests {
     #[test]
     fn test_secrets_redactor() {
         unsafe {
-            env::set_var("BIIP_TEST_PASSWORD", "my-awesome-secret");
-            env::set_var("BIIP_SECRET_TEST", "my-awesome-password");
+            env::set_var("TEST_PASSWORD", "my-awesome-secret");
+            env::set_var("SECRET_TEST", "my-awesome-password");
             env::set_var("TOKEN_FOR_BIIP_TEST", "my-awesome-token");
             env::set_var("A_KEY_FOR_TEST_WITH_BIIP", "my-awesome-key");
             env::set_var("SAFE_ENV_VAR", "safe-var");
@@ -81,6 +103,30 @@ mod tests {
         assert_eq!(
             redactor.redact("secret: invalid+S3+Key/withReChars"),
             "secret: ••••••••"
+        );
+    }
+
+    #[test]
+    fn test_custom_patterns_redactor() {
+        unsafe {
+            env::set_var("BIIP_PERSONAL_PATTERNS", "alpha+beta?*");
+            env::set_var("BIIP_SENSITIVE", "abc.def[ghi]");
+            env::set_var("NOT_BIIP", "should-not-be-captured");
+        }
+
+        let redactor = custom_patterns_redactor().unwrap();
+
+        assert_eq!(
+            redactor.redact("Pattern: alpha+beta?*"),
+            "Pattern: ••••••⚙•"
+        );
+        assert_eq!(
+            redactor.redact("Another: abc.def[ghi]"),
+            "Another: ••••••⚙•"
+        );
+        assert_eq!(
+            redactor.redact("Control: should-not-be-captured"),
+            "Control: should-not-be-captured"
         );
     }
 }

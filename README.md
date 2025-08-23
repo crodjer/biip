@@ -67,6 +67,7 @@ Biip can scrub:
  10. **API Keys**: Redacts common API key formats from providers like AWS, OpenAI, etc.
  11. **UUIDs**: Replaces UUIDs with a redacted pattern.
  12. **Keys / Passwords from environment**: It replaces the values for any potentially sensitive environment variables with: `••••••••`.
+ 13. **Custom patterns (BIIP_*)**: Any environment variable whose name starts with `BIIP` (e.g., `BIIP_PERSONAL_PATTERNS`, `BIIP_SENSITIVE`) has its value redacted with `••••••⚙•`.
 
 ## How is it useful?
 
@@ -99,4 +100,6 @@ $ cat .env | biip
 S3_KEY="••••••••"
 S3_SECRET="••••••••"
 OPENAI_API_KEY="••••☁️•"
+BIIP_PERSONAL_PATTERNS="••••••⚙•"
+BIIP_SENSITIVE="••••••⚙•"
 ```

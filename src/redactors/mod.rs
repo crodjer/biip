@@ -7,8 +7,8 @@ pub mod patterns;
 pub mod user;
 
 /// Redacts sensitive information from environment variables.
-/// @see env::secrets_redactor
-pub use env::secrets_redactor;
+/// @see env::{secrets_redactor, custom_patterns_redactor}
+pub use env::{custom_patterns_redactor, secrets_redactor};
 
 /// Redacts networking patterns like email addresses and IP addresses.
 /// @see network

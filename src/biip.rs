@@ -21,6 +21,7 @@ impl Biip {
             redactors::username_redactor,
             // Environment and secrets
             redactors::secrets_redactor,
+            redactors::custom_patterns_redactor,
             // Networking patterns (order is important here)
             redactors::url_credentials_redactor,
             redactors::email_redactor,
