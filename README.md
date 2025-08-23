@@ -1,4 +1,7 @@
 # biip
+[![Crates.io](https://img.shields.io/crates/v/biip.svg)](https://crates.io/crates/biip)
+[![Build](https://github.com/crodjer/biip/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/crodjer/biip/actions/workflows/ci.yml)
+
 `biip` (Beep + PII) is a tool (and a library) to scrub PII from text.
 
 ## Install
