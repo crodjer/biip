@@ -1,4 +1,4 @@
-use regex::Regex;
+use regex::{Regex, RegexBuilder};
 
 use crate::redactor::Redactor;
 use std::env;
@@ -42,18 +42,42 @@ pub fn secrets_redactor() -> Option<Redactor> {
 ///
 /// Returns `None` if no such environment variables are found.
 pub fn custom_patterns_redactor() -> Option<Redactor> {
-    let env_vars: Vec<String> = env::vars()
+    // Collect raw regex patterns from BIIP_* env vars (case-insensitive matching)
+    let raw_patterns: Vec<String> = env::vars()
         .filter(|(key, value)| key.to_uppercase().starts_with("BIIP") && !value.trim().is_empty())
-        .map(|(_, value)| regex::escape(value.trim()))
+        .map(|(_, value)| value.trim().to_string())
         .collect();
 
-    let pattern = env_vars.join("|");
-    if pattern.is_empty() {
-        None
-    } else {
-        Regex::new(&pattern)
-            .ok()
-            .map(|regex| Redactor::regex(regex, Some(String::from("••••••⚙•"))))
+    if raw_patterns.is_empty() {
+        return None;
+    }
+
+    // Validate each pattern individually; warn on invalid ones and skip them.
+    let valid_parts: Vec<String> = raw_patterns
+        .into_iter()
+        .filter_map(|p| match RegexBuilder::new(&p).case_insensitive(true).build() {
+            Ok(_) => Some(p),
+            Err(err) => {
+                eprintln!("[biip] Warning: invalid BIIP_* regex '{}': {}", p, err);
+                None
+            }
+        })
+        .collect();
+
+    if valid_parts.is_empty() {
+        return None;
+    }
+
+    let combined = format!("(?:{})", valid_parts.join("|"));
+    match RegexBuilder::new(&combined).case_insensitive(true).build() {
+        Ok(re) => Some(Redactor::regex(re, Some(String::from("••••••⚙•")))),
+        Err(err) => {
+            eprintln!(
+                "[biip] Warning: failed to build combined BIIP_* regex: {}",
+                err
+            );
+            None
+        }
     }
 }
 
@@ -109,24 +133,27 @@ mod tests {
     #[test]
     fn test_custom_patterns_redactor() {
         unsafe {
-            env::set_var("BIIP_PERSONAL_PATTERNS", "alpha+beta?*");
-            env::set_var("BIIP_SENSITIVE", "abc.def[ghi]");
+            // Valid alternation pattern, case-insensitive
+            env::set_var("BIIP_CUSTOM", "foo|bar|baz");
             env::set_var("NOT_BIIP", "should-not-be-captured");
         }
 
         let redactor = custom_patterns_redactor().unwrap();
 
-        assert_eq!(
-            redactor.redact("Pattern: alpha+beta?*"),
-            "Pattern: ••••••⚙•"
-        );
-        assert_eq!(
-            redactor.redact("Another: abc.def[ghi]"),
-            "Another: ••••••⚙•"
-        );
-        assert_eq!(
-            redactor.redact("Control: should-not-be-captured"),
-            "Control: should-not-be-captured"
-        );
+        let input = "A Foo\nAnother Bar\nAnd Baz\nControl: should-not-be-captured";
+        let expected = "A ••••••⚙•\nAnother ••••••⚙•\nAnd ••••••⚙•\nControl: should-not-be-captured";
+        assert_eq!(redactor.redact(input), expected);
+    }
+
+    #[test]
+    fn test_custom_patterns_ignores_invalid_patterns() {
+        unsafe {
+            // Invalid regex plus a valid one; should warn and still redact using the valid one
+            env::set_var("BIIP_BAD", "(");
+            env::set_var("BIIP_OK", "qux");
+        }
+
+        let redactor = custom_patterns_redactor().unwrap();
+        assert_eq!(redactor.redact("X Qux Y"), "X ••••••⚙• Y");
     }
 }
