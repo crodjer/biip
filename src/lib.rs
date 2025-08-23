@@ -33,7 +33,7 @@
 //!
 //! assert!(redacted.contains(r#"Hi, I am "user". My home is ~."#));
 //! assert!(redacted.contains("My IP is ••.••.••.•• and the gateway is ••:••:••:••:••:••:••:••."));
-//! assert!(redacted.contains("My secret is ••••••⚿•."));
+//! assert!(redacted.contains("My secret is ••••⚿•."));
 //! ```
 pub mod biip;
 pub mod redactor;

@@ -11,7 +11,7 @@ const ENV_SECRET_PATTERNS: &[&str] = &["password", "secret", "token", "key", "us
 /// to match the values of variables whose keys contain sensitive keywords
 /// (e.g., "password", "secret", "token", "key").
 ///
-/// The matched values are replaced with `••••••⚿•`.
+/// The matched values are replaced with `••••⚿•`.
 ///
 /// Returns `None` if no such environment variables are found.
 pub fn secrets_redactor() -> Option<Redactor> {
@@ -31,7 +31,7 @@ pub fn secrets_redactor() -> Option<Redactor> {
     } else {
         Regex::new(&pattern)
             .ok()
-            .map(|regex| Redactor::regex(regex, Some(String::from("••••••⚿•"))))
+            .map(|regex| Redactor::regex(regex, Some(String::from("••••⚿•"))))
     }
 }
 
@@ -99,20 +99,20 @@ mod tests {
 
         assert_eq!(
             redactor.redact("password: my-awesome-secret"),
-            "password: ••••••⚿•"
+            "password: ••••⚿•"
         );
         assert_eq!(
             redactor.redact("secret: my-awesome-password"),
-            "secret: ••••••⚿•"
+            "secret: ••••⚿•"
         );
         assert_eq!(
             redactor.redact("token: my-awesome-token"),
-            "token: ••••••⚿•"
+            "token: ••••⚿•"
         );
-        assert_eq!(redactor.redact("key: my-awesome-key"), "key: ••••••⚿•");
+        assert_eq!(redactor.redact("key: my-awesome-key"), "key: ••••⚿•");
         assert_eq!(
             redactor.redact("key: my-awesome-key, Var: safe-var"),
-            "key: ••••••⚿•, Var: safe-var"
+            "key: ••••⚿•, Var: safe-var"
         );
     }
 
@@ -126,7 +126,7 @@ mod tests {
 
         assert_eq!(
             redactor.redact("secret: invalid+S3+Key/withReChars"),
-            "secret: ••••••⚿•"
+            "secret: ••••⚿•"
         );
     }
 
