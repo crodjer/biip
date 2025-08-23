@@ -23,8 +23,8 @@
 //! # }
 //!
 //! let input = r#"
-//! Hi, I am "awesome-user". My home is /Users/awesome-user.
-//! My IP is 192.168.1.10 and the gateway is fe80::1.
+//! Hi, I am "Awesome-User". My home is /Users/awesome-user.
+//! My IP is 8.8.8.8 and the gateway is 2001:0db8:85a3:0000:0000:8a2e:0370:7334.
 //! My secret is mAM3zwogXpV6Czj6J.
 //! "#;
 //!
@@ -32,8 +32,8 @@
 //! let redacted = biip.process(input);
 //!
 //! assert!(redacted.contains(r#"Hi, I am "user". My home is ~."#));
-//! assert!(redacted.contains("My IP is 192.168.1.10 and the gateway is fe80::1."));
-//! assert!(redacted.contains("My secret is ••••••••."));
+//! assert!(redacted.contains("My IP is ••.••.••.•• and the gateway is ••:••:••:••:••:••:••:••."));
+//! assert!(redacted.contains("My secret is ••••••⚿•."));
 //! ```
 pub mod biip;
 pub mod redactor;

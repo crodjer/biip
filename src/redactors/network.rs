@@ -30,12 +30,12 @@ pub fn mac_address_redactor() -> Option<Redactor> {
 
 /// Creates a `Redactor` for IPv4 addresses.
 ///
-/// This redactor uses a regex to find and replace IPv4 addresses with `IPv4<••.••.••.••>`.
+/// This redactor uses a regex to find and replace IPv4 addresses with `••.••.••.••`.
 pub fn ipv4_redactor() -> Option<Redactor> {
     // Broadly match IPv4 candidates, then validate and only redact public ones.
     Regex::new(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")
         .ok()
-        .map(|regex| Redactor::validated(regex, is_public_ipv4, Some("IPv4<••.••.••.••>".to_owned())))
+        .map(|regex| Redactor::validated(regex, is_public_ipv4, Some("••.••.••.••".to_owned())))
 }
 
 // Validators that only consider addresses "public" (i.e., redactable).
@@ -75,11 +75,7 @@ pub fn ipv6_redactor() -> Option<Redactor> {
     let pattern = r"\b[0-9a-fA-F:]+:[0-9a-fA-F:]*[0-9a-fA-F]\b";
 
     Regex::new(pattern).ok().map(|re| {
-        Redactor::validated(
-            re,
-            is_public_ipv6,
-            Some("IPv6<••:••:••:••:••:••:••:••>".to_owned()),
-        )
+        Redactor::validated(re, is_public_ipv6, Some("••:••:••:••:••:••:••:••".to_owned()))
     })
 }
 
@@ -124,7 +120,7 @@ mod tests {
         // Test uncompressed
         assert_eq!(
             redactor.redact("2001:0db8:85a3:0000:0000:8a2e:0370:7334"),
-            "IPv6<••:••:••:••:••:••:••:••>"
+            "••:••:••:••:••:••:••:••"
         );
         // Ensure it does NOT redact a MAC address
         assert_eq!(
@@ -157,6 +153,6 @@ mod tests {
         // Private IPv4 should NOT be redacted
         assert_eq!(redactor.redact("IP: 192.168.1.1"), "IP: 192.168.1.1");
         // Public IPv4 should be redacted
-        assert_eq!(redactor.redact("DNS: 8.8.8.8"), "DNS: IPv4<••.••.••.••>");
+        assert_eq!(redactor.redact("DNS: 8.8.8.8"), "DNS: ••.••.••.••");
     }
 }

@@ -37,11 +37,11 @@ $ biip /tmp/info.txt
 ─── /tmp/info.txt ───
 Hi, I am "user"
 Current Directory: ~/foo/bar/baz
-My Secret Key: ••••••••
+My Secret Key: ••••••⚿•
 My Email: •••@•••
 My IPs:
-- IPv6<••:••:••:••:••:••:••:••>
-- IPv4<••.••.••.••>
+- ••:••:••:••:••:••:••:••
+- ••.••.••.••
 Connect via ftp://••••:••••@example.com
 Auth token is ••••🌐•
 My MAC address is ••:••:••:••:••:••.
@@ -66,7 +66,7 @@ Biip can scrub:
  9. **JSON Web Tokens (JWTs)**: Finds and redacts JWTs.
  10. **API Keys**: Redacts common API key formats from providers like AWS, OpenAI, etc.
  11. **UUIDs**: Replaces UUIDs with a redacted pattern.
- 12. **Keys / Passwords from environment**: It replaces the values for any potentially sensitive environment variables with: `••••••••`.
+ 12. **Keys / Passwords from environment**: It replaces the values for any potentially sensitive environment variables with: `••••••⚿•`.
  13. **Custom patterns (BIIP_*)**: Any environment variable whose name starts with `BIIP` (e.g., `BIIP_PERSONAL_PATTERNS`, `BIIP_SENSITIVE`) has its value redacted with `••••••⚙•`.
 
 ## How is it useful?
@@ -97,8 +97,8 @@ So, `biip` would redact (keys, secrets etc) from the output:
 
 ```sh
 $ cat .env | biip
-S3_KEY="••••••••"
-S3_SECRET="••••••••"
+S3_KEY="••••••⚿•"
+S3_SECRET="••••••⚿•"
 OPENAI_API_KEY="••••☁️•"
 BIIP_PERSONAL_PATTERNS="••••••⚙•"
 BIIP_SENSITIVE="••••••⚙•"
