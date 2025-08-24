@@ -1,4 +1,6 @@
-use regex::{Captures, Regex};
+use std::borrow::Cow;
+
+use regex::{Regex};
 
 /// An enum representing a redaction rule.
 ///
@@ -73,24 +75,50 @@ impl Redactor {
     /// # Returns
     ///
     /// A new `String` with the redactions applied.
-    pub fn redact(&self, text: &str) -> String {
+    pub fn redact<'a>(&self, text: &'a str) -> Cow<'a, str> {
         match self {
-            Redactor::Simple(pattern, replacer) => text.to_string().replace(pattern, replacer),
-            Redactor::Re(pattern, replacer) => pattern.replace_all(text, replacer).to_string(),
-            Redactor::ReWithCapture(pattern, replacer) => {
-                pattern.replace_all(text, replacer.as_str()).to_string()
+            Redactor::Simple(pattern, replacer) => {
+                if text.contains(pattern) {
+                    Cow::Owned(text.replace(pattern, replacer))
+                } else {
+                    Cow::Borrowed(text)
+                }
+            }
+            Redactor::Re(pattern, replacer) | Redactor::ReWithCapture(pattern, replacer) => {
+                pattern.replace_all(text, replacer.as_str())
             }
             Redactor::Validated(pattern, validator, replacer) => {
-                pattern
-                    .replace_all(text, |caps: &Captures| {
-                        if validator(&caps[0]) {
-                            replacer.clone()
-                        } else {
-                            // If invalid, return the original string for this match.
-                            caps[0].to_string()
+                let mut owned: Option<String> = None;
+                let mut last_end = 0;
+
+                for m in pattern.find_iter(text) {
+                    if validator(m.as_str()) {
+                        // First time we find a valid match, we must allocate.
+                        if owned.is_none() {
+                            owned = Some(String::with_capacity(text.len()));
                         }
-                    })
-                    .to_string()
+                        let owned_str = owned.as_mut().unwrap();
+
+                        // Append the text from the end of the last match to the start of this one.
+                        owned_str.push_str(&text[last_end..m.start()]);
+                        // Append the replacement string.
+                        owned_str.push_str(replacer);
+                        // Update our position.
+                        last_end = m.end();
+                    }
+                }
+
+                // If `owned` is Some, it means we performed at least one redaction.
+                // We finish by appending the remainder of the original string.
+                match owned {
+                    Some(mut s) => {
+                        s.push_str(&text[last_end..]);
+                        Cow::Owned(s)
+                    }
+                    // If `owned` is None, no valid matches were found, so we can
+                    // return the original string slice without any allocation.
+                    None => Cow::Borrowed(text),
+                }
             }
         }
     }

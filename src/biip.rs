@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use crate::redactor;
 use crate::redactors;
 
@@ -43,11 +45,21 @@ impl Biip {
 
     /// Processes a string, applying all configured redactors to it.
     pub fn process(self: &Self, string: &str) -> String {
-        let mut redacted = string.to_string();
+        let mut current_text = Cow::Borrowed(string);
+
         for r in &self.redactors {
-            redacted = r.redact(&redacted);
+            let redacted_cow = r.redact(&current_text);
+
+            // If the redactor returned an owned string, it means a change was made.
+            // We update `current_text` to hold this new owned string for the next iteration.
+            // If it returned a borrowed slice, no change was made, and we continue
+            // operating on the same text.
+            if let Cow::Owned(owned) = redacted_cow {
+                current_text = Cow::Owned(owned);
+            }
         }
-        redacted
+
+        current_text.into_owned()
     }
 }
 
