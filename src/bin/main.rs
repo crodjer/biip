@@ -1,13 +1,14 @@
 use biip::Biip;
 use dotenv::dotenv;
-use std::env;
+use std::{env, fs};
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, IsTerminal, Read, Seek, SeekFrom, Write};
+use std::process::Command;
 
 const HELP: &str = r#"Usage:
   cat file | biip
   biip [FILE ...]   # read and redact one or more files
-  biip              # interactive paste; press Ctrl-D to finish
+  biip              # open default editor for interactive input.
 "#;
 
 fn main() -> io::Result<()> {
@@ -37,9 +38,8 @@ fn main() -> io::Result<()> {
         return Ok(());
     }
 
-    // Interactive paste mode: stdin is a terminal and no args provided.
-    eprintln!("Paste content. Press Ctrl-D (Unix/macOS) or Ctrl-Z then Enter (Windows) to finish:");
-    run_interactive_paste(&stdin, &biip, &mut stdout, &mut stderr)
+    // Interactive editor mode.
+    run_with_editor(&biip, &mut stdout, &mut stderr)
 }
 
 fn process_lines<R: BufRead>(reader: R, biip: &Biip, out: &mut dyn Write) -> io::Result<()> {
@@ -84,14 +84,55 @@ fn run_with_piped_stdin(stdin: &io::Stdin, biip: &Biip, out: &mut dyn Write) -> 
     process_lines(stdin.lock(), biip, out)
 }
 
-const SEPARATOR: &str = "──────────";
+fn run_with_editor(biip: &Biip, out: &mut dyn Write, err: &mut dyn Write) -> io::Result<()> {
+    // Determine editor from env vars, falling back to "vi".
+    let editor = env::var("EDITOR")
+        .unwrap_or_else(|_| "vi".to_string());
 
-fn run_interactive_paste(stdin: &io::Stdin, biip: &Biip, out: &mut dyn Write, err: &mut dyn Write) -> io::Result<()> {
-    writeln!(err, "{}", SEPARATOR)?;
-    let mut buf = String::new();
-    stdin.lock().read_to_string(&mut buf)?;
-    writeln!(err, "{}", SEPARATOR)?;
-    writeln!(out, "{}", biip.process(&buf))
+    let temp_path = env::temp_dir().join(format!("biip-interactive-{}.txt", std::process::id()));
+    File::create(&temp_path)?;
+
+    // Create a temporary file for the user to edit.
+    let temp_path = env::temp_dir().join(format!("biip-interactive-{}.txt", std::process::id()));
+    File::create(&temp_path)?;
+
+    // Launch the editor process and wait for it to exit.
+    let status = Command::new(&editor).arg(&temp_path).status();
+
+    // Ensure editor process is cleaned up even on early return.
+    // This is a simple RAII guard for file deletion.
+    let _cleanup = TempFileGuard { path: temp_path.clone() };
+
+    match status {
+        Ok(status) if status.success() => {
+            let file = File::open(&temp_path)?;
+            let reader = BufReader::new(file);
+            process_lines(reader, biip, out)
+        }
+        Ok(_) => {
+            writeln!(err, "Editor closed without saving. Aborting.")?;
+            Ok(())
+        }
+        Err(e) => {
+            writeln!(
+                err,
+                "Failed to open editor '{}'. Is it in your $PATH?",
+                editor
+            )?;
+            Err(e)
+        }
+    }
+}
+
+// RAII guard to ensure the temporary file is always deleted.
+struct TempFileGuard {
+    path: std::path::PathBuf,
+}
+
+impl Drop for TempFileGuard {
+    fn drop(&mut self) {
+        let _ = fs::remove_file(&self.path);
+    }
 }
 
 fn is_probably_binary(file: &mut File) -> io::Result<bool> {

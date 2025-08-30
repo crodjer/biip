@@ -53,7 +53,9 @@ My MAC address is ••:••:••:••:••:••.
 Other ways to run:
 
 - From stdin: `cat /tmp/info.txt | biip`
-- Interactive paste: run `biip`, paste content, then press `Ctrl-D`.
+- Interactive: run `biip`, type in or paste your text in the editor. For
+  example: `biip | pbcopy` can be used to paste or type in arbitrary text and
+  copy it to the clipboard.
 
 ## What does it scrub?
 Biip can scrub:
