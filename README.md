@@ -108,3 +108,9 @@ OPENAI_API_KEY="••••☁️•"
 BIIP_PERSONAL_PATTERNS="••••⚙•"
 BIIP_SENSITIVE="••••⚙•"
 ```
+
+### Arbitrary Text.
+Type in / paste arbitrary test and copy it to clipboard.
+```sh
+$ biip | pbcopy
+```

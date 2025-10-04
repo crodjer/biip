@@ -39,7 +39,8 @@ fn main() -> io::Result<()> {
     }
 
     // Interactive editor mode.
-    run_with_editor(&biip, &mut stdout, &mut stderr)
+    let editor = find_editor();
+    run_with_editor(&editor, &biip, &mut stdout, &mut stderr)
 }
 
 fn process_lines<R: BufRead>(reader: R, biip: &Biip, out: &mut dyn Write) -> io::Result<()> {
@@ -84,20 +85,37 @@ fn run_with_piped_stdin(stdin: &io::Stdin, biip: &Biip, out: &mut dyn Write) -> 
     process_lines(stdin.lock(), biip, out)
 }
 
-fn run_with_editor(biip: &Biip, out: &mut dyn Write, err: &mut dyn Write) -> io::Result<()> {
-    // Determine editor from env vars, falling back to "vi".
-    let editor = env::var("EDITOR")
-        .unwrap_or_else(|_| "vi".to_string());
+fn find_editor() -> String {
+    env::var("EDITOR").unwrap_or_else(|_| "vi".to_string())
+}
 
-    let temp_path = env::temp_dir().join(format!("biip-interactive-{}.txt", std::process::id()));
-    File::create(&temp_path)?;
+fn run_with_editor(editor: &str, biip: &Biip, out: &mut dyn Write, err: &mut dyn Write) -> io::Result<()> {
 
     // Create a temporary file for the user to edit.
     let temp_path = env::temp_dir().join(format!("biip-interactive-{}.txt", std::process::id()));
     File::create(&temp_path)?;
 
+    // Open /dev/tty for the editor so it can interact with the terminal
+    // even when stdout is piped (e.g., biip | pbcopy).
+    let tty = fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open("/dev/tty")
+        .ok();
+
     // Launch the editor process and wait for it to exit.
-    let status = Command::new(&editor).arg(&temp_path).status();
+    let mut cmd = Command::new(&editor);
+    cmd.arg(&temp_path);
+
+    // If we successfully opened /dev/tty, use it for stdin/stdout/stderr
+    // so the editor can interact with the terminal even when piped.
+    if let Some(tty_file) = tty {
+        cmd.stdin(tty_file.try_clone()?);
+        cmd.stdout(tty_file.try_clone()?);
+        cmd.stderr(tty_file);
+    }
+
+    let status = cmd.status();
 
     // Ensure editor process is cleaned up even on early return.
     // This is a simple RAII guard for file deletion.
@@ -212,5 +230,83 @@ mod tests {
         assert!(se.contains("warning: binary file skipped:"));
         let _ = fs::remove_file(text_p);
         let _ = fs::remove_file(bin_p);
+    }
+
+    #[test]
+    fn test_run_with_editor_success() {
+        // Create a fake editor script that writes content to the temp file
+        let script_path = tmp_file_with(
+            b"#!/bin/sh\necho 'test@example.com' > \"$1\"",
+            "editor_success",
+        );
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let mut perms = fs::metadata(&script_path).unwrap().permissions();
+            perms.set_mode(0o755);
+            fs::set_permissions(&script_path, perms).unwrap();
+        }
+
+        let biip = Biip::new();
+        let mut out = Vec::new();
+        let mut err = Vec::new();
+        let result = run_with_editor(
+            &script_path.to_string_lossy(),
+            &biip,
+            &mut out,
+            &mut err,
+        );
+
+        assert!(result.is_ok());
+        let output = String::from_utf8(out).unwrap();
+        assert!(output.contains("•••@•••")); // Email should be redacted
+        let _ = fs::remove_file(script_path);
+    }
+
+    #[test]
+    fn test_run_with_editor_non_success_exit() {
+        // Create a fake editor script that exits with non-zero status
+        let script_path = tmp_file_with(b"#!/bin/sh\nexit 1", "editor_fail");
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let mut perms = fs::metadata(&script_path).unwrap().permissions();
+            perms.set_mode(0o755);
+            fs::set_permissions(&script_path, perms).unwrap();
+        }
+
+        let biip = Biip::new();
+        let mut out = Vec::new();
+        let mut err = Vec::new();
+        let result = run_with_editor(
+            &script_path.to_string_lossy(),
+            &biip,
+            &mut out,
+            &mut err,
+        );
+
+        assert!(result.is_ok()); // Should not error, just abort
+        let output = String::from_utf8(out).unwrap();
+        assert!(output.is_empty()); // No output when editor fails
+        let err_output = String::from_utf8(err).unwrap();
+        assert!(err_output.contains("Editor closed without saving"));
+        let _ = fs::remove_file(script_path);
+    }
+
+    #[test]
+    fn test_run_with_editor_nonexistent() {
+        let biip = Biip::new();
+        let mut out = Vec::new();
+        let mut err = Vec::new();
+        let result = run_with_editor(
+            "/nonexistent/editor/path/xyz123",
+            &biip,
+            &mut out,
+            &mut err,
+        );
+
+        assert!(result.is_err()); // Should error when editor doesn't exist
+        let err_output = String::from_utf8(err).unwrap();
+        assert!(err_output.contains("Failed to open editor"));
     }
 }
