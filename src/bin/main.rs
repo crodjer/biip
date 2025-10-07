@@ -56,14 +56,16 @@ fn run_with_args(
     out: &mut dyn Write,
     err: &mut dyn Write,
 ) -> io::Result<()> {
+    let show_header = paths.len() > 1;
     for path in paths {
-        process_file_path(path, biip, out, err)?;
+        process_file_path(path, show_header, biip, out, err)?;
     }
     Ok(())
 }
 
 fn process_file_path(
     path: &str,
+    show_header: bool,
     biip: &Biip,
     out: &mut dyn Write,
     err: &mut dyn Write,
@@ -76,7 +78,9 @@ fn process_file_path(
     }
     // Reset cursor and process with header
     file.seek(SeekFrom::Start(0))?;
-    writeln!(out, "─── {} ───", path)?;
+    if show_header {
+        writeln!(out, "─── {} ───", path)?;
+    }
     let reader = BufReader::new(file);
     process_lines(reader, biip, out)
 }
@@ -194,6 +198,24 @@ mod tests {
 
         let _ = fs::remove_file(text_p);
         let _ = fs::remove_file(bin_p);
+    }
+
+    #[test]
+    fn test_run_with_args_single_file_omits_header() {
+        let text_p = tmp_file_with(b"hello user foo@bar.com", "single_text");
+        let biip = Biip::new();
+        let mut out = Vec::new();
+        let mut err = Vec::new();
+        run_with_args(
+            &vec![text_p.to_string_lossy().into()],
+            &biip,
+            &mut out,
+            &mut err,
+        )
+        .unwrap();
+        let so = String::from_utf8(out).unwrap();
+        assert!(!so.contains("─── "));
+        let _ = fs::remove_file(text_p);
     }
 
     #[test]
