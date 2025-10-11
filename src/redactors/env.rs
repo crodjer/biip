@@ -4,6 +4,7 @@ use crate::redactor::Redactor;
 use std::env;
 
 const ENV_SECRET_PATTERNS: &[&str] = &["password", "secret", "token", "key", "username", "email"];
+const MIN_SECRET_LENGTH: usize = 5;
 
 /// Creates a `Redactor` for sensitive environment variables.
 ///
@@ -20,7 +21,7 @@ pub fn secrets_redactor() -> Option<Redactor> {
             ENV_SECRET_PATTERNS
                 .iter()
                 .any(|pattern| key.to_lowercase().contains(pattern))
-                && value.trim().len() > 0
+                && value.trim().len() > MIN_SECRET_LENGTH
         })
         .map(|(_, value)| regex::escape(value.trim()))
         .collect();
