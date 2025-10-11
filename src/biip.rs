@@ -1,9 +1,12 @@
 use std::borrow::Cow;
 
-use crate::redactor;
-use crate::redactors;
+use crate::{
+    redactor,
+    redactors,
+};
 
-/// The main struct for `biip`, responsible for holding the redactors and processing text.
+/// The main struct for `biip`, responsible for holding the redactors and
+/// processing text.
 pub struct Biip {
     redactors: Vec<redactor::Redactor>,
 }
@@ -11,8 +14,9 @@ pub struct Biip {
 impl Biip {
     /// Creates a new `Biip` instance with a default set of redactors.
     ///
-    /// The order of redactors is important to prevent conflicts (e.g., a MAC address
-    /// being mistaken for a partial IPv6 address). The order is generally:
+    /// The order of redactors is important to prevent conflicts (e.g., a MAC
+    /// address being mistaken for a partial IPv6 address). The order is
+    /// generally:
     /// 1. User and environment-specific (most specific).
     /// 2. Networking patterns with specific formats.
     /// 3. Generic patterns like JWTs and UUIDs.
@@ -50,9 +54,10 @@ impl Biip {
         for r in &self.redactors {
             let redacted_cow = r.redact(&current_text);
 
-            // If the redactor returned an owned string, it means a change was made.
-            // We update `current_text` to hold this new owned string for the next iteration.
-            // If it returned a borrowed slice, no change was made, and we continue
+            // If the redactor returned an owned string, it means a change was
+            // made. We update `current_text` to hold this new owned
+            // string for the next iteration. If it returned a
+            // borrowed slice, no change was made, and we continue
             // operating on the same text.
             if let Cow::Owned(owned) = redacted_cow {
                 current_text = Cow::Owned(owned);
@@ -65,8 +70,9 @@ impl Biip {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::env;
+
+    use super::*;
 
     #[test]
     fn test_biip() {

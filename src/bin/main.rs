@@ -1,9 +1,22 @@
+use std::fs::File;
+use std::io::{
+    self,
+    BufRead,
+    BufReader,
+    IsTerminal,
+    Read,
+    Seek,
+    SeekFrom,
+    Write,
+};
+use std::process::Command;
+use std::{
+    env,
+    fs,
+};
+
 use biip::Biip;
 use dotenv::dotenv;
-use std::{env, fs};
-use std::fs::File;
-use std::io::{self, BufRead, BufReader, IsTerminal, Read, Seek, SeekFrom, Write};
-use std::process::Command;
 
 const HELP: &str = r#"Usage:
   cat file | biip
@@ -43,7 +56,11 @@ fn main() -> io::Result<()> {
     run_with_editor(&editor, &biip, &mut stdout, &mut stderr)
 }
 
-fn process_lines<R: BufRead>(reader: R, biip: &Biip, out: &mut dyn Write) -> io::Result<()> {
+fn process_lines<R: BufRead>(
+    reader: R,
+    biip: &Biip,
+    out: &mut dyn Write,
+) -> io::Result<()> {
     for line_res in reader.lines() {
         writeln!(out, "{}", biip.process(&line_res?))?;
     }
@@ -85,7 +102,11 @@ fn process_file_path(
     process_lines(reader, biip, out)
 }
 
-fn run_with_piped_stdin(stdin: &io::Stdin, biip: &Biip, out: &mut dyn Write) -> io::Result<()> {
+fn run_with_piped_stdin(
+    stdin: &io::Stdin,
+    biip: &Biip,
+    out: &mut dyn Write,
+) -> io::Result<()> {
     process_lines(stdin.lock(), biip, out)
 }
 
@@ -93,10 +114,15 @@ fn find_editor() -> String {
     env::var("EDITOR").unwrap_or_else(|_| "vi".to_string())
 }
 
-fn run_with_editor(editor: &str, biip: &Biip, out: &mut dyn Write, err: &mut dyn Write) -> io::Result<()> {
-
+fn run_with_editor(
+    editor: &str,
+    biip: &Biip,
+    out: &mut dyn Write,
+    err: &mut dyn Write,
+) -> io::Result<()> {
     // Create a temporary file for the user to edit.
-    let temp_path = env::temp_dir().join(format!("biip-interactive-{}.txt", std::process::id()));
+    let temp_path = env::temp_dir()
+        .join(format!("biip-interactive-{}.txt", std::process::id()));
     File::create(&temp_path)?;
 
     // Open /dev/tty for the editor so it can interact with the terminal
@@ -123,7 +149,9 @@ fn run_with_editor(editor: &str, biip: &Biip, out: &mut dyn Write, err: &mut dyn
 
     // Ensure editor process is cleaned up even on early return.
     // This is a simple RAII guard for file deletion.
-    let _cleanup = TempFileGuard { path: temp_path.clone() };
+    let _cleanup = TempFileGuard {
+        path: temp_path.clone(),
+    };
 
     match status {
         Ok(status) if status.success() => {
@@ -174,10 +202,11 @@ fn is_probably_binary(file: &mut File) -> io::Result<bool> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::fs;
     use std::io::Cursor;
     use std::path::PathBuf;
+
+    use super::*;
 
     fn tmp_file_with(content: &[u8], name: &str) -> PathBuf {
         let mut p = std::env::temp_dir();

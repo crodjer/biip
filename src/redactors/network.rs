@@ -1,7 +1,11 @@
-use std::net::{Ipv4Addr, Ipv6Addr};
+use std::net::{
+    Ipv4Addr,
+    Ipv6Addr,
+};
+
+use regex::Regex;
 
 use crate::redactor::Redactor;
-use regex::Regex;
 
 /// Creates a `Redactor` for URL credentials.
 ///
@@ -9,12 +13,18 @@ use regex::Regex;
 pub fn url_credentials_redactor() -> Option<Redactor> {
     Regex::new(r"(?P<protocol>https?|ftp)://([^:]+):([^@]+)@")
         .ok()
-        .map(|re| Redactor::regex_with_capture(re, "${protocol}://••••:••••@".to_string()))
+        .map(|re| {
+            Redactor::regex_with_capture(
+                re,
+                "${protocol}://••••:••••@".to_string(),
+            )
+        })
 }
 
 /// Creates a `Redactor` for email addresses.
 ///
-/// This redactor uses a regex to find and replace email addresses with `•••@•••`.
+/// This redactor uses a regex to find and replace email addresses with
+/// `•••@•••`.
 pub fn email_redactor() -> Option<Redactor> {
     Regex::new(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b")
         .ok()
@@ -30,12 +40,19 @@ pub fn mac_address_redactor() -> Option<Redactor> {
 
 /// Creates a `Redactor` for IPv4 addresses.
 ///
-/// This redactor uses a regex to find and replace IPv4 addresses with `••.••.••.••`.
+/// This redactor uses a regex to find and replace IPv4 addresses with
+/// `••.••.••.••`.
 pub fn ipv4_redactor() -> Option<Redactor> {
     // Broadly match IPv4 candidates, then validate and only redact public ones.
     Regex::new(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")
         .ok()
-        .map(|regex| Redactor::validated(regex, is_public_ipv4, Some("••.••.••.••".to_owned())))
+        .map(|regex| {
+            Redactor::validated(
+                regex,
+                is_public_ipv4,
+                Some("••.••.••.••".to_owned()),
+            )
+        })
 }
 
 // Validators that only consider addresses "public" (i.e., redactable).
@@ -55,8 +72,8 @@ fn is_public_ipv4(s: &str) -> bool {
 
 fn is_public_ipv6(s: &str) -> bool {
     if let Ok(addr) = s.parse::<Ipv6Addr>() {
-        // Do not redact loopback (::1), link-local (fe80::/10), unique local (fc00::/7),
-        // unspecified (::), or multicast.
+        // Do not redact loopback (::1), link-local (fe80::/10), unique local
+        // (fc00::/7), unspecified (::), or multicast.
         !(addr.is_loopback()
             || addr.is_unicast_link_local()
             || addr.is_unique_local()
@@ -67,7 +84,8 @@ fn is_public_ipv6(s: &str) -> bool {
     }
 }
 
-/// Creates a Redactor for IPv6 addresses using regex search and std lib validation.
+/// Creates a Redactor for IPv6 addresses using regex search and std lib
+/// validation.
 pub fn ipv6_redactor() -> Option<Redactor> {
     // Broad candidate: contains at least one colon and ends with a hex digit.
     // This avoids matching bare `::` and most code scopes like `crate::path`.
@@ -75,7 +93,11 @@ pub fn ipv6_redactor() -> Option<Redactor> {
     let pattern = r"\b[0-9a-fA-F:]+:[0-9a-fA-F:]*[0-9a-fA-F]\b";
 
     Regex::new(pattern).ok().map(|re| {
-        Redactor::validated(re, is_public_ipv6, Some("••:••:••:••:••:••:••:••".to_owned()))
+        Redactor::validated(
+            re,
+            is_public_ipv6,
+            Some("••:••:••:••:••:••:••:••".to_owned()),
+        )
     })
 }
 
@@ -144,7 +166,10 @@ mod tests {
     #[test]
     fn test_email_redactor() {
         let redactor = email_redactor().unwrap();
-        assert_eq!(redactor.redact("email: test@example.com"), "email: •••@•••");
+        assert_eq!(
+            redactor.redact("email: test@example.com"),
+            "email: •••@•••"
+        );
     }
 
     #[test]

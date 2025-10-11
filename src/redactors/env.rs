@@ -1,9 +1,14 @@
-use regex::{Regex, RegexBuilder};
-
-use crate::redactor::Redactor;
 use std::env;
 
-const ENV_SECRET_PATTERNS: &[&str] = &["password", "secret", "token", "key", "username", "email"];
+use regex::{
+    Regex,
+    RegexBuilder,
+};
+
+use crate::redactor::Redactor;
+
+const ENV_SECRET_PATTERNS: &[&str] =
+    &["password", "secret", "token", "key", "username", "email"];
 const MIN_SECRET_LENGTH: usize = 5;
 
 /// Creates a `Redactor` for sensitive environment variables.
@@ -36,16 +41,20 @@ pub fn secrets_redactor() -> Option<Redactor> {
     }
 }
 
-/// Creates a `Redactor` for any environment variables whose names start with "BIIP".
+/// Creates a `Redactor` for any environment variables whose names start with
+/// "BIIP".
 ///
 /// This lets users define custom variables like `BIIP_PERSONAL_PATTERNS`,
 /// `BIIP_SENSITIVE`, etc., and have their values redacted from output.
 ///
 /// Returns `None` if no such environment variables are found.
 pub fn custom_patterns_redactor() -> Option<Redactor> {
-    // Collect raw regex patterns from BIIP_* env vars (case-insensitive matching)
+    // Collect raw regex patterns from BIIP_* env vars (case-insensitive
+    // matching)
     let raw_patterns: Vec<String> = env::vars()
-        .filter(|(key, value)| key.to_uppercase().starts_with("BIIP") && !value.trim().is_empty())
+        .filter(|(key, value)| {
+            key.to_uppercase().starts_with("BIIP") && !value.trim().is_empty()
+        })
         .map(|(_, value)| value.trim().to_string())
         .collect();
 
@@ -56,11 +65,16 @@ pub fn custom_patterns_redactor() -> Option<Redactor> {
     // Validate each pattern individually; warn on invalid ones and skip them.
     let valid_parts: Vec<String> = raw_patterns
         .into_iter()
-        .filter_map(|p| match RegexBuilder::new(&p).case_insensitive(true).build() {
-            Ok(_) => Some(p),
-            Err(err) => {
-                eprintln!("[biip] Warning: invalid BIIP_* regex '{}': {}", p, err);
-                None
+        .filter_map(|p| {
+            match RegexBuilder::new(&p).case_insensitive(true).build() {
+                Ok(_) => Some(p),
+                Err(err) => {
+                    eprintln!(
+                        "[biip] Warning: invalid BIIP_* regex '{}': {}",
+                        p, err
+                    );
+                    None
+                }
             }
         })
         .collect();
@@ -106,10 +120,7 @@ mod tests {
             redactor.redact("secret: my-awesome-password"),
             "secret: ••••⚿•"
         );
-        assert_eq!(
-            redactor.redact("token: my-awesome-token"),
-            "token: ••••⚿•"
-        );
+        assert_eq!(redactor.redact("token: my-awesome-token"), "token: ••••⚿•");
         assert_eq!(redactor.redact("key: my-awesome-key"), "key: ••••⚿•");
         assert_eq!(
             redactor.redact("key: my-awesome-key, Var: safe-var"),
@@ -141,7 +152,8 @@ mod tests {
 
         let redactor = custom_patterns_redactor().unwrap();
 
-        let input = "A Foo\nAnother Bar\nAnd Baz\nControl: should-not-be-captured";
+        let input =
+            "A Foo\nAnother Bar\nAnd Baz\nControl: should-not-be-captured";
         let expected = "A ••••⚙•\nAnother ••••⚙•\nAnd ••••⚙•\nControl: should-not-be-captured";
         assert_eq!(redactor.redact(input), expected);
     }
@@ -149,7 +161,8 @@ mod tests {
     #[test]
     fn test_custom_patterns_ignores_invalid_patterns() {
         unsafe {
-            // Invalid regex plus a valid one; should warn and still redact using the valid one
+            // Invalid regex plus a valid one; should warn and still redact
+            // using the valid one
             env::set_var("BIIP_BAD", "(");
             env::set_var("BIIP_OK", "qux");
         }

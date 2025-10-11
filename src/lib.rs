@@ -1,13 +1,15 @@
-//! `biip` is a library to scrub personally identifiable information (PII) from text.
+//! `biip` is a library to scrub personally identifiable information (PII) from
+//! text.
 //!
-//! It provides a flexible way to define and apply redaction rules to any string.
+//! It provides a flexible way to define and apply redaction rules to any
+//! string.
 //!
 //! # How it works
 //!
-//! `biip` works by applying a series of "redactors" to the input text. Each redactor
-//! is responsible for finding and replacing a specific type of sensitive information.
-//! The library includes redactors for common patterns like usernames, environment secrets,
-//! IP addresses, API keys, and more.
+//! `biip` works by applying a series of "redactors" to the input text. Each
+//! redactor is responsible for finding and replacing a specific type of
+//! sensitive information. The library includes redactors for common patterns
+//! like usernames, environment secrets, IP addresses, API keys, and more.
 //!
 //! # Example
 //!

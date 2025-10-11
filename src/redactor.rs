@@ -1,23 +1,26 @@
 use std::borrow::Cow;
 
-use regex::{Regex};
+use regex::Regex;
 
 /// An enum representing a redaction rule.
 ///
-/// A `Redactor` can be a simple string replacement or a more complex regex-based replacement.
+/// A `Redactor` can be a simple string replacement or a more complex
+/// regex-based replacement.
 pub enum Redactor {
     /// A simple string-for-string replacement.
-    /// The first `String` is the pattern to find, and the second is the replacement.
+    /// The first `String` is the pattern to find, and the second is the
+    /// replacement.
     Simple(String, String),
     /// A regex-based replacement.
-    /// The `Regex` is the pattern to find, and the `String` is the replacement.
+    /// The `Regex` is the pattern to find, and the `String` is the
+    /// replacement.
     Re(Regex, String),
     /// A regex-based replacement that uses capture groups.
     /// The `Regex` is the pattern, and the `String` is the replacement
     /// which can include capture group references like `$1`, `$2`.
     ReWithCapture(Regex, String),
-    /// A regex that finds candidates, which are then passed to a validator function.
-    /// Only if the validator returns true is the match redacted.
+    /// A regex that finds candidates, which are then passed to a validator
+    /// function. Only if the validator returns true is the match redacted.
     Validated(Regex, fn(&str) -> bool, String),
 }
 
@@ -27,7 +30,8 @@ impl Redactor {
     /// # Arguments
     ///
     /// * `pattern` - The string pattern to search for.
-    /// * `beep` - An optional replacement string. If `None`, a default replacer will be used.
+    /// * `beep` - An optional replacement string. If `None`, a default replacer
+    ///   will be used.
     pub fn simple(pattern: String, beep: Option<String>) -> Self {
         let replacer = beep.clone().unwrap_or(String::from("•••"));
         Redactor::Simple(pattern, replacer)
@@ -38,7 +42,8 @@ impl Redactor {
     /// # Arguments
     ///
     /// * `pattern` - The regex pattern to search for.
-    /// * `beep` - An optional replacement string. If `None`, a default replacer will be used.
+    /// * `beep` - An optional replacement string. If `None`, a default replacer
+    ///   will be used.
     pub fn regex(pattern: Regex, beep: Option<String>) -> Self {
         let replacer = beep.clone().unwrap_or(String::from("•••"));
         Redactor::Re(pattern, replacer)
@@ -60,8 +65,13 @@ impl Redactor {
     ///
     /// * `pattern` - The regex pattern to search for.
     /// * `validator` - A function to validate the redacted text.
-    /// * `beep` - An optional replacement string. If `None`, a default replacer will be used.
-    pub fn validated(pattern: Regex, validator: fn(&str) -> bool, beep: Option<String>) -> Self {
+    /// * `beep` - An optional replacement string. If `None`, a default replacer
+    ///   will be used.
+    pub fn validated(
+        pattern: Regex,
+        validator: fn(&str) -> bool,
+        beep: Option<String>,
+    ) -> Self {
         let replacer = beep.clone().unwrap_or(String::from("•••"));
         Redactor::Validated(pattern, validator, replacer)
     }
@@ -84,7 +94,8 @@ impl Redactor {
                     Cow::Borrowed(text)
                 }
             }
-            Redactor::Re(pattern, replacer) | Redactor::ReWithCapture(pattern, replacer) => {
+            Redactor::Re(pattern, replacer)
+            | Redactor::ReWithCapture(pattern, replacer) => {
                 pattern.replace_all(text, replacer.as_str())
             }
             Redactor::Validated(pattern, validator, replacer) => {
@@ -99,7 +110,8 @@ impl Redactor {
                         }
                         let owned_str = owned.as_mut().unwrap();
 
-                        // Append the text from the end of the last match to the start of this one.
+                        // Append the text from the end of the last match to the
+                        // start of this one.
                         owned_str.push_str(&text[last_end..m.start()]);
                         // Append the replacement string.
                         owned_str.push_str(replacer);
@@ -108,15 +120,17 @@ impl Redactor {
                     }
                 }
 
-                // If `owned` is Some, it means we performed at least one redaction.
-                // We finish by appending the remainder of the original string.
+                // If `owned` is Some, it means we performed at least one
+                // redaction. We finish by appending the
+                // remainder of the original string.
                 match owned {
                     Some(mut s) => {
                         s.push_str(&text[last_end..]);
                         Cow::Owned(s)
                     }
-                    // If `owned` is None, no valid matches were found, so we can
-                    // return the original string slice without any allocation.
+                    // If `owned` is None, no valid matches were found, so we
+                    // can return the original string slice
+                    // without any allocation.
                     None => Cow::Borrowed(text),
                 }
             }

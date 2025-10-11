@@ -1,12 +1,13 @@
+use std::env;
+
 use regex::RegexBuilder;
 
 use crate::redactor::Redactor;
-use std::env;
 
 /// Creates a `Redactor` for the current user's username.
 ///
-/// This function reads the `USER` environment variable and creates a case-insensitive
-/// regex to replace occurrences of the username with `user`.
+/// This function reads the `USER` environment variable and creates a
+/// case-insensitive regex to replace occurrences of the username with `user`.
 ///
 /// Returns `None` if the `USER` environment variable is not set.
 pub fn username_redactor() -> Option<Redactor> {
