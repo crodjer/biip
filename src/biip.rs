@@ -36,8 +36,6 @@ impl Biip {
             redactors::ipv6_redactor,
             // Generic and vendor-specific patterns
             redactors::jwt_redactor,
-            redactors::credit_card_redactor,
-            redactors::phone_number_redactor,
             redactors::uuid_redactor,
             redactors::cloud_keys_redactor,
         ]
