@@ -66,13 +66,11 @@ Biip can scrub:
  4. **Email Addresses**: Replaces emails with `•••@•••`.
  5. **IP Addresses**: Redacts public IPv4 and IPv6 addresses (skips local/private addresses).
  6. **MAC Addresses**: Replaces MAC addresses.
- 7. **Phone Numbers**: Redacts common phone number formats.
- 8. **Credit Card Numbers**: Redacts common credit card number patterns.
- 9. **JSON Web Tokens (JWTs)**: Finds and redacts JWTs.
- 10. **API Keys**: Redacts common API key formats from providers like AWS, OpenAI, etc.
- 11. **UUIDs**: Replaces UUIDs with a redacted pattern.
- 12. **Keys / Passwords from environment**: It replaces the values for any potentially sensitive environment variables with: `••••⚿•`.
- 13. **Custom patterns (BIIP_*)**: Any environment variable whose name starts with `BIIP` (e.g., `BIIP_PERSONAL_PATTERNS`, `BIIP_SENSITIVE`) has its value redacted with `••••⚙•`.
+ 7. **JSON Web Tokens (JWTs)**: Finds and redacts JWTs.
+ 8. **API Keys**: Redacts common API key formats from providers like AWS, OpenAI, etc.
+ 9. **UUIDs**: Replaces UUIDs with a redacted pattern.
+ 10. **Keys / Passwords from environment**: It replaces the values for any potentially sensitive environment variables with: `••••⚿•`.
+ 11. **Custom patterns (BIIP_*)**: Any environment variable whose name starts with `BIIP` (e.g., `BIIP_PERSONAL_PATTERNS`, `BIIP_SENSITIVE`) has its value redacted with `••••⚙•`.
 
 ## How is it useful?
 
