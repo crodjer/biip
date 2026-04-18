@@ -33,7 +33,9 @@ pub fn email_redactor() -> Option<Redactor> {
 
 /// Redacts MAC addresses.
 pub fn mac_address_redactor() -> Option<Redactor> {
-    Regex::new(r"([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})")
+    Regex::new(
+        r"(?i:\b[0-9a-f]{2}(?::[0-9a-f]{2}){5}\b|\b[0-9a-f]{2}(?:-[0-9a-f]{2}){5}\b)",
+    )
         .ok()
         .map(|re| Redactor::regex(re, Some("••:••:••:••:••:••".to_string())))
 }
@@ -128,6 +130,10 @@ mod tests {
         assert_eq!(
             redactor.redact("Another is 01-23-45-67-89-AB."),
             "Another is ••:••:••:••:••:••."
+        );
+        assert_eq!(
+            redactor.redact("2026-04-25:13:00:49 INFO artificial event"),
+            "2026-04-25:13:00:49 INFO artificial event"
         );
     }
 
