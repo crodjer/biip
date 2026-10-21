@@ -11,6 +11,13 @@ pub struct Biip {
     redactors: Vec<redactor::Redactor>,
 }
 
+/// A redaction region in the original input, expressed as a UTF-8 byte range.
+#[derive(Debug, PartialEq, Eq)]
+pub struct RedactionMatch {
+    pub start: usize,
+    pub end: usize,
+}
+
 impl Biip {
     /// Creates a new `Biip` instance with a default set of redactors.
     ///
@@ -45,6 +52,31 @@ impl Biip {
         Biip { redactors }
     }
 
+    /// Returns non-overlapping redaction regions in original-input byte offsets.
+    ///
+    /// Regions follow configured redactor priority. A later match that overlaps
+    /// an earlier match is omitted, matching the existing pipeline where an
+    /// earlier replacement prevents later redactors from seeing that content.
+    pub fn matches(&self, string: &str) -> Vec<RedactionMatch> {
+        let mut matches = Vec::new();
+
+        for redactor in &self.redactors {
+            for range in redactor.matches(string) {
+                if matches.iter().all(|existing: &RedactionMatch| {
+                    range.end <= existing.start || range.start >= existing.end
+                }) {
+                    matches.push(RedactionMatch {
+                        start: range.start,
+                        end: range.end,
+                    });
+                }
+            }
+        }
+
+        matches.sort_by_key(|matched| matched.start);
+        matches
+    }
+
     /// Processes a string, applying all configured redactors to it.
     pub fn process(self: &Self, string: &str) -> String {
         let mut current_text = Cow::Borrowed(string);
@@ -70,7 +102,51 @@ impl Biip {
 mod tests {
     use std::env;
 
+    use regex::Regex;
+
     use super::*;
+
+    #[test]
+    fn reports_original_utf8_byte_spans_in_priority_order() {
+        let input = "é key sk-abcdefghijklmnopqrstuvwxyz1234567890ABCD and email user@example.com";
+        let biip = Biip::new();
+
+        assert_eq!(
+            biip.matches(input),
+            vec![
+                RedactionMatch { start: 7, end: 50 },
+                RedactionMatch { start: 61, end: 77 },
+            ]
+        );
+    }
+
+    #[test]
+    fn overlaps_keep_the_first_redactor_match() {
+        let biip = Biip {
+            redactors: vec![
+                redactor::Redactor::regex(Regex::new("secret-value").unwrap(), None),
+                redactor::Redactor::regex(Regex::new("value").unwrap(), None),
+            ],
+        };
+
+        assert_eq!(
+            biip.matches("secret-value"),
+            vec![RedactionMatch { start: 0, end: 12 }]
+        );
+    }
+
+    #[test]
+    fn validated_matches_exclude_private_ip_addresses() {
+        let biip = Biip {
+            redactors: vec![redactors::ipv4_redactor().unwrap()],
+        };
+
+        assert!(biip.matches("192.168.1.1").is_empty());
+        assert_eq!(
+            biip.matches("8.8.8.8"),
+            vec![RedactionMatch { start: 0, end: 7 }]
+        );
+    }
 
     #[test]
     fn test_biip() {
