@@ -25,6 +25,27 @@ pub enum Redactor {
 }
 
 impl Redactor {
+    /// Returns the UTF-8 byte ranges in `text` that this redactor would replace.
+    pub fn matches(&self, text: &str) -> Vec<std::ops::Range<usize>> {
+        match self {
+            Redactor::Simple(pattern, _) => text
+                .match_indices(pattern)
+                .map(|(start, matched)| start..start + matched.len())
+                .collect(),
+            Redactor::Re(pattern, _) | Redactor::ReWithCapture(pattern, _) => {
+                pattern
+                    .find_iter(text)
+                    .map(|matched| matched.start()..matched.end())
+                    .collect()
+            }
+            Redactor::Validated(pattern, validator, _) => pattern
+                .find_iter(text)
+                .filter(|matched| validator(matched.as_str()))
+                .map(|matched| matched.start()..matched.end())
+                .collect(),
+        }
+    }
+
     /// Creates a new `Redactor::Simple` variant.
     ///
     /// # Arguments

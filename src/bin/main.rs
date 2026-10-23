@@ -20,8 +20,9 @@ use dotenv::dotenv;
 
 const HELP: &str = r#"Usage:
   cat file | biip
-  biip [FILE ...]   # read and redact one or more files
-  biip              # open default editor for interactive input.
+  cat file | biip --json-spans  # emit original-input UTF-8 byte ranges
+  biip [FILE ...]               # read and redact one or more files
+  biip                          # open default editor for interactive input.
 "#;
 
 fn main() -> io::Result<()> {
@@ -36,6 +37,19 @@ fn main() -> io::Result<()> {
     // Help
     if args.iter().any(|a| a == "-h" || a == "--help") {
         write!(stdout, "{}", HELP)?;
+        return Ok(());
+    }
+
+    if args == ["--json-spans"] {
+        if stdin.is_terminal() {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "--json-spans requires UTF-8 input on stdin",
+            ));
+        }
+        let mut input = String::new();
+        stdin.lock().read_to_string(&mut input)?;
+        write_json_spans(&input, &biip, &mut stdout)?;
         return Ok(());
     }
 
@@ -100,6 +114,25 @@ fn process_file_path(
     }
     let reader = BufReader::new(file);
     process_lines(reader, biip, out)
+}
+
+fn write_json_spans(
+    input: &str,
+    biip: &Biip,
+    out: &mut dyn Write,
+) -> io::Result<()> {
+    write!(out, "{{\"matches\":[")?;
+    for (index, matched) in biip.matches(input).iter().enumerate() {
+        if index > 0 {
+            write!(out, ",")?;
+        }
+        write!(
+            out,
+            "{{\"start\":{},\"end\":{}}}",
+            matched.start, matched.end
+        )?;
+    }
+    writeln!(out, "]}}")
 }
 
 fn run_with_piped_stdin(
@@ -256,6 +289,24 @@ mod tests {
         process_lines(reader, &biip, &mut out).unwrap();
         let s = String::from_utf8(out).unwrap();
         assert!(s.contains("•••@•••"));
+    }
+
+    #[test]
+    fn test_write_json_spans_uses_original_utf8_byte_offsets() {
+        let biip = Biip::new();
+        let mut out = Vec::new();
+
+        write_json_spans(
+            "é sk-abcdefghijklmnopqrstuvwxyz1234567890ABCD",
+            &biip,
+            &mut out,
+        )
+        .unwrap();
+
+        assert_eq!(
+            String::from_utf8(out).unwrap(),
+            "{\"matches\":[{\"start\":3,\"end\":46}]}\n"
+        );
     }
 
     #[test]

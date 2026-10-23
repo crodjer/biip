@@ -53,6 +53,9 @@ My MAC address is ••:••:••:••:••:••.
 Other ways to run:
 
 - From stdin: `cat /tmp/info.txt | biip`
+- Machine-readable spans: `cat /tmp/info.txt | biip --json-spans` emits sorted,
+  non-overlapping `start`/`end` UTF-8 byte offsets for each region that biip
+  would redact. This leaves masking presentation to the caller.
 - Interactive: run `biip`, type in or paste your text in the editor. For
   example: `biip | pbcopy` can be used to paste or type in arbitrary text and
   copy it to the clipboard.

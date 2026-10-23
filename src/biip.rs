@@ -1,14 +1,18 @@
 use std::borrow::Cow;
 
-use crate::{
-    redactor,
-    redactors,
-};
+use crate::{redactor, redactors};
 
 /// The main struct for `biip`, responsible for holding the redactors and
 /// processing text.
 pub struct Biip {
     redactors: Vec<redactor::Redactor>,
+}
+
+/// A redaction region in the original input, expressed as a UTF-8 byte range.
+#[derive(Debug, PartialEq, Eq)]
+pub struct RedactionMatch {
+    pub start: usize,
+    pub end: usize,
 }
 
 impl Biip {
@@ -45,6 +49,79 @@ impl Biip {
         Biip { redactors }
     }
 
+    /// Returns non-overlapping redaction regions in original-input byte offsets.
+    ///
+    /// Regions follow configured redactor priority. A later match that overlaps
+    /// an earlier match is omitted, matching the existing pipeline where an
+    /// earlier replacement prevents later redactors from seeing that content.
+    pub fn matches(&self, string: &str) -> Vec<RedactionMatch> {
+        // Keep an original-byte provenance range for every byte of the evolving
+        // text. A replacement inherits the complete original range it replaces;
+        // this is deliberately conservative when a later redactor matches text
+        // made adjacent by an earlier replacement.
+        let mut text = string.to_owned();
+        let mut provenance: Vec<Vec<std::ops::Range<usize>>> = (0..string
+            .len())
+            .map(|index| vec![index..index + 1])
+            .collect();
+        let mut redacted = Vec::new();
+
+        for redactor in &self.redactors {
+            let ranges = redactor.matches(&text);
+            if ranges.is_empty() {
+                continue;
+            }
+
+            for range in &ranges {
+                redacted.extend(
+                    provenance[range.clone()].iter().flatten().cloned(),
+                );
+            }
+
+            let mut next_text = String::new();
+            let mut next_provenance = Vec::new();
+            let mut cursor = 0;
+            for range in ranges {
+                next_text.push_str(&text[cursor..range.start]);
+                next_provenance
+                    .extend_from_slice(&provenance[cursor..range.start]);
+
+                let replacement =
+                    redactor.redact(&text[range.clone()]).into_owned();
+                let inherited: Vec<_> = provenance[range.clone()]
+                    .iter()
+                    .flatten()
+                    .cloned()
+                    .collect();
+                next_provenance.extend(
+                    std::iter::repeat(inherited).take(replacement.len()),
+                );
+                next_text.push_str(&replacement);
+                cursor = range.end;
+            }
+            next_text.push_str(&text[cursor..]);
+            next_provenance.extend_from_slice(&provenance[cursor..]);
+            text = next_text;
+            provenance = next_provenance;
+        }
+
+        redacted.sort_by_key(|range| range.start);
+        let mut merged: Vec<RedactionMatch> = Vec::new();
+        for range in redacted {
+            if let Some(last) = merged.last_mut() {
+                if range.start <= last.end {
+                    last.end = last.end.max(range.end);
+                    continue;
+                }
+            }
+            merged.push(RedactionMatch {
+                start: range.start,
+                end: range.end,
+            });
+        }
+        merged
+    }
+
     /// Processes a string, applying all configured redactors to it.
     pub fn process(self: &Self, string: &str) -> String {
         let mut current_text = Cow::Borrowed(string);
@@ -70,7 +147,72 @@ impl Biip {
 mod tests {
     use std::env;
 
+    use regex::Regex;
+
     use super::*;
+
+    #[test]
+    fn reports_original_utf8_byte_spans_in_priority_order() {
+        let input = "é key sk-abcdefghijklmnopqrstuvwxyz1234567890ABCD and email user@example.com";
+        let biip = Biip::new();
+
+        assert_eq!(
+            biip.matches(input),
+            vec![
+                RedactionMatch { start: 7, end: 50 },
+                RedactionMatch { start: 61, end: 77 },
+            ]
+        );
+    }
+
+    #[test]
+    fn spans_cover_keys_exposed_after_an_earlier_replacement() {
+        unsafe {
+            env::set_var("MY_SECRET", "prefix");
+        }
+        let input = "prefixsk-abcdefghijklmnopqrstuvwxyz123456";
+        let biip = Biip::new();
+
+        assert_eq!(biip.process(input), "••••⚿•••••☁️•");
+        assert_eq!(
+            biip.matches(input),
+            vec![RedactionMatch {
+                start: 0,
+                end: input.len(),
+            }]
+        );
+    }
+
+    #[test]
+    fn overlaps_keep_the_first_redactor_match() {
+        let biip = Biip {
+            redactors: vec![
+                redactor::Redactor::regex(
+                    Regex::new("secret-value").unwrap(),
+                    None,
+                ),
+                redactor::Redactor::regex(Regex::new("value").unwrap(), None),
+            ],
+        };
+
+        assert_eq!(
+            biip.matches("secret-value"),
+            vec![RedactionMatch { start: 0, end: 12 }]
+        );
+    }
+
+    #[test]
+    fn validated_matches_exclude_private_ip_addresses() {
+        let biip = Biip {
+            redactors: vec![redactors::ipv4_redactor().unwrap()],
+        };
+
+        assert!(biip.matches("192.168.1.1").is_empty());
+        assert_eq!(
+            biip.matches("8.8.8.8"),
+            vec![RedactionMatch { start: 0, end: 7 }]
+        );
+    }
 
     #[test]
     fn test_biip() {
